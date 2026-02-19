@@ -1,20 +1,20 @@
 #!/usr/bin/env node
-import * as cdk from 'aws-cdk-lib/core';
-import { PecuniaStack } from '../lib/pecunia-stack';
+import 'source-map-support/register';
+import * as cdk from 'aws-cdk-lib';
+import { PecuniaDatabaseStack } from '../lib/database-stack';
+import { PecuniaAuthStack } from '../lib/auth-stack';
+import { PecuniaApiStack } from '../lib/api-stack';
 
 const app = new cdk.App();
-new PecuniaStack(app, 'PecuniaStack', {
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
 
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+// 1. Database
+const dbStack = new PecuniaDatabaseStack(app, 'PecuniaDatabaseStack');
 
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
+// 2. Authentication
+const authStack = new PecuniaAuthStack(app, 'PecuniaAuthStack');
 
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+// 3. API (Needs both DB and Auth)
+new PecuniaApiStack(app, 'PecuniaApiStack', {
+  table: dbStack.table,
+  userPool: authStack.userPool, // Pass the User Pool to the API
 });

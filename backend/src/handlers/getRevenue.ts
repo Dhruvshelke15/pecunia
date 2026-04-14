@@ -1,47 +1,87 @@
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { getUserId } from "../lib/auth";
+import { ok, unauthorized, badRequest, serverError } from "../lib/response";
+import { logger } from "../lib/logger";
 
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
-const TABLE_NAME = process.env.TABLE_NAME;
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const TABLE_NAME = process.env.TABLE_NAME!;
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
 
-export const handler = async (event: any) => {
+export const handler = async (
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> => {
+  const requestId = event.requestContext.requestId;
+
   try {
-    // 1. Get the User ID from the Token (Security)
-    const claims = event.requestContext?.authorizer?.claims;
-    if (!claims || !claims.sub) {
-      return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
-    }
-    const userId = claims.sub;
+    const userId = getUserId(event);
+    if (!userId) return unauthorized();
 
-    // 2. Query DynamoDB
-    // Fetch ALL items where PK = USER#<userId>
-    const command = new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: "PK = :pk",
-      ExpressionAttributeValues: {
-        ":pk": `USER#${userId}`,
-      },
-      // to show newest first
-      ScanIndexForward: false
+    const log = logger.withContext({ requestId, userId });
+
+    const qs = event.queryStringParameters ?? {};
+
+    const limitRaw = parseInt(qs.limit ?? String(DEFAULT_PAGE_SIZE), 10);
+    if (isNaN(limitRaw) || limitRaw < 1)
+      return badRequest("limit must be a positive integer");
+    const limit = Math.min(limitRaw, MAX_PAGE_SIZE);
+
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+    if (qs.cursor) {
+      try {
+        exclusiveStartKey = JSON.parse(
+          Buffer.from(qs.cursor, "base64url").toString("utf-8"),
+        );
+      } catch {
+        return badRequest("Invalid cursor");
+      }
+    }
+
+    log.info("fetching transactions", {
+      limit,
+      hasCursor: !!exclusiveStartKey,
     });
 
-    const response = await docClient.send(command);
+    const response = await docClient.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: "PK = :pk",
+        ExpressionAttributeValues: { ":pk": `USER#${userId}` },
+        ScanIndexForward: false,
+        Limit: limit,
+        ExclusiveStartKey: exclusiveStartKey,
+      }),
+    );
 
-    return {
-      statusCode: 200,
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*" 
-      },
-      body: JSON.stringify(response.Items || []),
-    };
+    const items = (response.Items ?? []).map((item) => ({
+      id: item.SK as string,
+      transactionType: item.transactionType,
+      date: item.date,
+      amount: item.amount,
+      source: item.source,
+      category: item.category,
+      description: item.description,
+      createdAt: item.createdAt,
+    }));
 
-  } catch (error: any) {
-    console.error("Error fetching revenue:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Failed to fetch data" }),
-    };
+    const nextCursor = response.LastEvaluatedKey
+      ? Buffer.from(JSON.stringify(response.LastEvaluatedKey)).toString(
+          "base64url",
+        )
+      : undefined;
+
+    log.info("transactions fetched", {
+      count: items.length,
+      hasNextPage: !!nextCursor,
+    });
+
+    return ok({ items, nextCursor });
+  } catch (error) {
+    logger
+      .withContext({ requestId })
+      .error("getRevenue failed", { error: String(error) });
+    return serverError(requestId);
   }
 };

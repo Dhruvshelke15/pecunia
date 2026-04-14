@@ -4,7 +4,10 @@
 
 /* Premium Fintech Background */
 body {
-  background: radial-gradient(circle at top left, #1e1b4b, #0f172a);
+  background:
+    radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #0a0f1e 100%);
   color: #f8fafc;
   min-height: 100vh;
 }
@@ -12,9 +15,13 @@ body {
 /* Glassmorphism Card Utility */
 .glass-card {
   background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .glass-input {
@@ -22,8 +29,29 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
 }
+
+.glass-input::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
 .glass-input:focus {
   outline: none;
-  border-color: #6366f1; /* Indigo-500 */
-  background: rgba(0, 0, 0, 0.4);
+  border-color: #6366f1;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
 }

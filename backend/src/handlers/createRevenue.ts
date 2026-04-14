@@ -1,93 +1,77 @@
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { randomUUID } from "crypto";
+import { createTransactionSchema } from "../lib/validation";
+import { getUserId } from "../lib/auth";
+import {
+  badRequest,
+  created,
+  unauthorized,
+  serverError,
+} from "../lib/response";
+import { logger } from "../lib/logger";
 
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
-const TABLE_NAME = process.env.TABLE_NAME;
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const TABLE_NAME = process.env.TABLE_NAME!;
 
-export const handler = async (event: any) => {
+export const handler = async (
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> => {
+  const requestId = event.requestContext.requestId;
+
   try {
-    // Log the full event to debug the structure in CloudWatch
-    console.log("FULL EVENT:", JSON.stringify(event, null, 2));
+    const userId = getUserId(event);
+    if (!userId) return unauthorized();
 
-    // USER ID EXTRACTION
-    let userId = "test-user-fallback";
+    const log = logger.withContext({ requestId, userId });
 
-    // Checking if the request came from API Gateway with a Cognito Authorizer
-    if (event.requestContext && event.requestContext.authorizer && event.requestContext.authorizer.claims) {
-      userId = event.requestContext.authorizer.claims.sub;
-      console.log("User ID found in Authorizer claims:", userId);
-    } else {
-      console.warn("WARNING: No Authorizer claims found. Using fallback ID.");
+    let rawBody: unknown;
+    try {
+      rawBody = JSON.parse(event.body ?? "{}");
+    } catch {
+      return badRequest("Invalid JSON body");
     }
 
-    // BODY PARSING
-    let body = event.body;
-    
-    if (!body) {
-      return { 
-        statusCode: 400, 
-        body: JSON.stringify({ error: "No body provided" }) 
-      };
+    const parseResult = createTransactionSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      const message = parseResult.error.issues
+        .map((e) => `${e.path.join(".")}: ${e.message}`)
+        .join(", ");
+      return badRequest(message, "VALIDATION_ERROR");
     }
 
-    // API Gateway sometimes sends the body as a string, sometimes as an object
-    if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        return { 
-          statusCode: 400, 
-          body: JSON.stringify({ error: "Invalid JSON body" }) 
-        };
-      }
-    }
+    const input = parseResult.data;
+    const id = randomUUID();
+    const sk = `TXN#${input.date}#${id}`;
 
-    const { date, amount, source, category, description, transactionType } = body;
+    const item = {
+      PK: `USER#${userId}`,
+      SK: sk,
+      type: "Transaction",
+      transactionType: input.transactionType,
+      date: input.date,
+      amount: input.amount,
+      source: input.source,
+      category: input.category,
+      description: input.description,
+      createdAt: new Date().toISOString(),
+    };
 
-    // Basic Validation
-    if (!date || !amount || !source) {
-      return { 
-        statusCode: 400, 
-        body: JSON.stringify({ error: "Missing required fields: date, amount, source" }) 
-      };
-    }
-    
+    await docClient.send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
 
-    // DYNAMODB WRITE
-    const command = new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        PK: `USER#${userId}`,
-        SK: `REV#${date}#${randomUUID()}`,
-        type: "Revenue",
-        transactionType: transactionType || "income",
-        date,
-        amount: Number(amount),
-        source,
-        category: category || "Uncategorized",
-        description: description || "",
-        createdAt: new Date().toISOString()
-      },
+    log.info("transaction created", {
+      sk,
+      amount: input.amount,
+      transactionType: input.transactionType,
     });
 
-    await docClient.send(command);
-
-    return {
-      statusCode: 201,
-      headers: { 
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*" 
-      },
-      body: JSON.stringify({ message: "Revenue entry created successfully", id: userId }),
-    };
-
-  } catch (error: any) {
-    console.error("CRITICAL ERROR:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Internal Server Error", details: error.message }),
-    };
+    const { PK: _pk, SK: _sk, ...dto } = item;
+    return created({ id: sk, ...dto });
+  } catch (error) {
+    logger
+      .withContext({ requestId })
+      .error("createTransaction failed", { error: String(error) });
+    return serverError(requestId);
   }
 };

@@ -1,49 +1,48 @@
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { getUserId } from "../lib/auth";
+import { ok, unauthorized, badRequest, serverError } from "../lib/response";
+import { logger } from "../lib/logger";
 
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
-const TABLE_NAME = process.env.TABLE_NAME;
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const TABLE_NAME = process.env.TABLE_NAME!;
 
-export const handler = async (event: any) => {
+export const handler = async (
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> => {
+  const requestId = event.requestContext.requestId;
+
   try {
-    const claims = event.requestContext?.authorizer?.claims;
-    if (!claims || !claims.sub) {
-      return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
-    }
-    const userId = claims.sub;
+    const userId = getUserId(event);
+    if (!userId) return unauthorized();
 
-    // --- FIX: Decode the ID ---
-    // The frontend sends "REV%23date...", we need "REV#date..."
+    const log = logger.withContext({ requestId, userId });
+
     const rawId = event.pathParameters?.id;
-    if (!rawId) {
-      return { statusCode: 400, body: JSON.stringify({ error: "Missing entry ID" }) };
-    }
-    const entryId = decodeURIComponent(rawId); 
+    if (!rawId) return badRequest("Missing entry ID");
 
-    console.log(`Attempting to delete: PK=USER#${userId}, SK=${entryId}`);
+    const entryId = decodeURIComponent(rawId);
 
-    const command = new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `USER#${userId}`,
-        SK: entryId, 
-      },
-    });
+    log.info("deleting entry", { sk: entryId });
 
-    await docClient.send(command);
+    await docClient.send(
+      new DeleteCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: entryId,
+        },
+      }),
+    );
 
-    return {
-      statusCode: 200,
-      headers: { 
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "DELETE" 
-      },
-      body: JSON.stringify({ message: "Entry deleted successfully" }),
-    };
+    log.info("entry deleted", { sk: entryId });
 
-  } catch (error: any) {
-    console.error("Error deleting entry:", error);
-    return { statusCode: 500, body: JSON.stringify({ error: "Failed to delete" }) };
+    return ok({ message: "Entry deleted successfully" });
+  } catch (error) {
+    logger
+      .withContext({ requestId })
+      .error("deleteEntry failed", { error: String(error) });
+    return serverError(requestId);
   }
 };

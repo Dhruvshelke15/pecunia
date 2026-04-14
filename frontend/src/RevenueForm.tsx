@@ -7,6 +7,9 @@ export default function RevenueForm() {
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
   
+  const INCOME_CATEGORIES = ['Freelance', 'Salary', 'Investments', 'Bonus', 'Other'];
+  const EXPENSE_CATEGORIES = ['Food', 'Utilities', 'Entertainment', 'Rent', 'Transport', 'Other'];
+
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     amount: '',
@@ -51,10 +54,13 @@ export default function RevenueForm() {
       <div className="grid grid-cols-2 gap-2 p-1 bg-black/20 rounded-xl mb-6">
         <button
           type="button"
-          onClick={() => setTransactionType('income')}
+          onClick={() => {
+            setTransactionType('income');
+            setFormData(f => ({ ...f, category: 'Freelance' }));
+          }}
           className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-            transactionType === 'income' 
-            ? 'bg-emerald-500/20 text-emerald-400 shadow-sm' 
+            transactionType === 'income'
+            ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
             : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -62,10 +68,13 @@ export default function RevenueForm() {
         </button>
         <button
           type="button"
-          onClick={() => setTransactionType('expense')}
+          onClick={() => {
+            setTransactionType('expense');
+            setFormData(f => ({ ...f, category: 'Food' }));
+          }}
           className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-            transactionType === 'expense' 
-            ? 'bg-rose-500/20 text-rose-400 shadow-sm' 
+            transactionType === 'expense'
+            ? 'bg-rose-500/20 text-rose-400 shadow-sm'
             : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -119,18 +128,14 @@ export default function RevenueForm() {
         {/* Category */}
         <div className="space-y-1">
           <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Category</label>
-          <select 
+          <select
             className="w-full px-4 py-2 rounded-lg glass-input focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
             value={formData.category}
             onChange={e => setFormData({...formData, category: e.target.value})}
           >
-            <option className="bg-slate-800">Freelance</option>
-            <option className="bg-slate-800">Salary</option>
-            <option className="bg-slate-800">Investments</option>
-            <option className="bg-slate-800">Food</option>
-            <option className="bg-slate-800">Utilities</option>
-            <option className="bg-slate-800">Entertainment</option>
-            <option className="bg-slate-800">Other</option>
+            {(transactionType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => (
+              <option key={cat} className="bg-slate-800">{cat}</option>
+            ))}
           </select>
         </div>
 
@@ -140,7 +145,9 @@ export default function RevenueForm() {
           disabled={loading}
           className="w-full mt-6 flex justify-center items-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow-lg shadow-indigo-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Add Transaction'}
+          {loading ? (
+            <><Loader2 className="w-5 h-5 animate-spin" /> Saving...</>
+          ) : 'Add Transaction'}
         </button>
 
         {/* Status Message */}

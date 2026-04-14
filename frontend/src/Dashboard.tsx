@@ -4,7 +4,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
-import { Trash2, RefreshCw, TrendingUp, TrendingDown, DollarSign, Filter } from 'lucide-react';
+import { Trash2, RefreshCw, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard() {
@@ -133,40 +133,43 @@ export default function Dashboard() {
         </div>
 
         {/* 3. Chart Area */}
-        <div className="h-72 w-full mb-8">
-          <ResponsiveContainer width="100%" height="100%">
-            {activeData.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-slate-500">
-                No {viewMode} data to display.
-              </div>
-            ) : chartType === 'bar' ? (
-              <BarChart data={groupedData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8f8fcff' }} />
-                <Bar dataKey="value" fill={MAIN_COLOR} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            ) : chartType === 'pie' ? (
-              <PieChart>
-                <Pie data={groupedData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} stroke="none">
-                  {groupedData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={CURRENT_COLORS[index % CURRENT_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }} />
-              </PieChart>
-            ) : (
-              <LineChart data={activeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(val) => `$${val}`} />
-                <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }} />
-                <Line type="monotone" dataKey="amount" stroke={MAIN_COLOR} strokeWidth={3} dot={{r: 4, fill: '#1e293b'}} />
-              </LineChart>
-            )}
-          </ResponsiveContainer>
-        </div>
+        {activeData.length === 0 ? (
+          <div className="h-72 w-full mb-8 flex flex-col items-center justify-center gap-2 rounded-xl border border-white/5 bg-white/[0.02]">
+            <DollarSign className="w-8 h-8 text-slate-600" />
+            <p className="text-slate-500 text-sm">No {viewMode} data to display.</p>
+          </div>
+        ) : (
+          <div className="h-72 w-full mb-8">
+            <ResponsiveContainer width="100%" height="100%">
+              {chartType === 'bar' ? (
+                <BarChart data={groupedData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }} />
+                  <Bar dataKey="value" fill={MAIN_COLOR} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              ) : chartType === 'pie' ? (
+                <PieChart>
+                  <Pie data={groupedData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} stroke="none">
+                    {groupedData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CURRENT_COLORS[index % CURRENT_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }} />
+                </PieChart>
+              ) : (
+                <LineChart data={activeData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(val) => `$${val}`} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }} />
+                  <Line type="monotone" dataKey="amount" stroke={MAIN_COLOR} strokeWidth={3} dot={{ r: 4, fill: '#1e293b' }} />
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* 4. Transactions List */}
         <div className="space-y-3">

@@ -5,7 +5,8 @@
     "pecunia": "bin/pecunia.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build:frontend": "cd frontend && npm run build",
+    "deploy": "npm run build:frontend && cdk deploy --all",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
@@ -30,6 +31,7 @@
     "aws-amplify": "^6.16.2",
     "aws-cdk-lib": "^2.237.1",
     "axios": "^1.13.5",
-    "constructs": "^10.0.0"
+    "constructs": "^10.0.0",
+    "zod": "^4.3.6"
   }
 }

@@ -122,3 +122,4 @@ jobs:
         run: npx cdk deploy --all --require-approval never
         env:
           FRONTEND_ORIGIN: ${{ secrets.FRONTEND_ORIGIN }}
+          ANTHROPIC_SECRET_ARN: ${{ secrets.ANTHROPIC_SECRET_ARN }}

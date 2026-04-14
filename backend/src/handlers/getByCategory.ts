@@ -12,15 +12,17 @@ export const handler = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
   const requestId = event.requestContext.requestId;
+  const origin = event.headers?.origin ?? event.headers?.Origin;
 
   try {
     const userId = getUserId(event);
-    if (!userId) return unauthorized();
+    if (!userId) return unauthorized(origin);
 
     const log = logger.withContext({ requestId, userId });
 
     const category = event.pathParameters?.category;
-    if (!category) return badRequest("category is required");
+    if (!category)
+      return badRequest("category is required", "BAD_REQUEST", origin);
 
     const decodedCategory = decodeURIComponent(category);
     const qs = event.queryStringParameters ?? {};
@@ -70,11 +72,11 @@ export const handler = async (
 
     log.info("category query complete", { count: items.length });
 
-    return ok({ items });
+    return ok({ items }, origin);
   } catch (error) {
     logger
       .withContext({ requestId })
       .error("getByCategory failed", { error: String(error) });
-    return serverError(requestId);
+    return serverError(requestId, origin);
   }
 };

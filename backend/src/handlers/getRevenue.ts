@@ -14,10 +14,11 @@ export const handler = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
   const requestId = event.requestContext.requestId;
+  const origin = event.headers?.origin ?? event.headers?.Origin;
 
   try {
     const userId = getUserId(event);
-    if (!userId) return unauthorized();
+    if (!userId) return unauthorized(origin);
 
     const log = logger.withContext({ requestId, userId });
 
@@ -25,7 +26,11 @@ export const handler = async (
 
     const limitRaw = parseInt(qs.limit ?? String(DEFAULT_PAGE_SIZE), 10);
     if (isNaN(limitRaw) || limitRaw < 1)
-      return badRequest("limit must be a positive integer");
+      return badRequest(
+        "limit must be a positive integer",
+        "BAD_REQUEST",
+        origin,
+      );
     const limit = Math.min(limitRaw, MAX_PAGE_SIZE);
 
     let exclusiveStartKey: Record<string, unknown> | undefined;
@@ -35,7 +40,7 @@ export const handler = async (
           Buffer.from(qs.cursor, "base64url").toString("utf-8"),
         );
       } catch {
-        return badRequest("Invalid cursor");
+        return badRequest("Invalid cursor", "BAD_REQUEST", origin);
       }
     }
 
@@ -77,11 +82,11 @@ export const handler = async (
       hasNextPage: !!nextCursor,
     });
 
-    return ok({ items, nextCursor });
+    return ok({ items, nextCursor }, origin);
   } catch (error) {
     logger
       .withContext({ requestId })
       .error("getRevenue failed", { error: String(error) });
-    return serverError(requestId);
+    return serverError(requestId, origin);
   }
 };

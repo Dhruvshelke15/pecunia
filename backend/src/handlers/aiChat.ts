@@ -36,19 +36,20 @@ export const handler = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
   const requestId = event.requestContext.requestId;
+  const origin = event.headers?.origin ?? event.headers?.Origin;
 
   try {
     const userId = getUserId(event);
-    if (!userId) return unauthorized();
+    if (!userId) return unauthorized(origin);
 
     const log = logger.withContext({ requestId, userId });
 
     const parsed = schema.safeParse(JSON.parse(event.body ?? "{}"));
-    if (!parsed.success) return badRequest("message is required");
+    if (!parsed.success)
+      return badRequest("message is required", "BAD_REQUEST", origin);
 
     const { message } = parsed.data;
 
-    // Fetch last 200 transactions as context
     const response = await docClient.send(
       new QueryCommand({
         TableName: TABLE_NAME,
@@ -130,11 +131,11 @@ ${transactions
 
     log.info("ai chat response", { replyLength: reply.length });
 
-    return ok({ reply });
+    return ok({ reply }, origin);
   } catch (error) {
     logger
       .withContext({ requestId })
       .error("aiChat failed", { error: String(error) });
-    return serverError(requestId);
+    return serverError(requestId, origin);
   }
 };

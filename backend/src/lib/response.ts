@@ -1,41 +1,63 @@
 import { APIGatewayProxyResult } from "aws-lambda";
 
-const CORS_HEADERS = {
-  "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN ?? "*",
-  "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
-};
+const ALLOWED_ORIGINS = [
+  process.env.ALLOWED_ORIGIN ?? "*",
+  "http://localhost:5173",
+  "http://localhost:4173",
+];
 
-export const ok = (body: unknown): APIGatewayProxyResult => ({
+function getCorsOrigin(requestOrigin?: string): string {
+  if (!requestOrigin) return ALLOWED_ORIGINS[0];
+  if (ALLOWED_ORIGINS.includes(requestOrigin)) return requestOrigin;
+  return ALLOWED_ORIGINS[0];
+}
+
+export function corsHeaders(requestOrigin?: string) {
+  return {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": getCorsOrigin(requestOrigin),
+    "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+  };
+}
+
+export const ok = (body: unknown, origin?: string): APIGatewayProxyResult => ({
   statusCode: 200,
-  headers: CORS_HEADERS,
+  headers: corsHeaders(origin),
   body: JSON.stringify(body),
 });
 
-export const created = (body: unknown): APIGatewayProxyResult => ({
+export const created = (
+  body: unknown,
+  origin?: string,
+): APIGatewayProxyResult => ({
   statusCode: 201,
-  headers: CORS_HEADERS,
+  headers: corsHeaders(origin),
   body: JSON.stringify(body),
 });
 
 export const badRequest = (
   message: string,
   code = "BAD_REQUEST",
+  origin?: string,
 ): APIGatewayProxyResult => ({
   statusCode: 400,
-  headers: CORS_HEADERS,
+  headers: corsHeaders(origin),
   body: JSON.stringify({ error: message, code }),
 });
 
-export const unauthorized = (): APIGatewayProxyResult => ({
+export const unauthorized = (origin?: string): APIGatewayProxyResult => ({
   statusCode: 401,
-  headers: CORS_HEADERS,
+  headers: corsHeaders(origin),
   body: JSON.stringify({ error: "Unauthorized", code: "UNAUTHORIZED" }),
 });
 
-export const serverError = (requestId?: string): APIGatewayProxyResult => ({
+export const serverError = (
+  requestId?: string,
+  origin?: string,
+): APIGatewayProxyResult => ({
   statusCode: 500,
-  headers: CORS_HEADERS,
+  headers: corsHeaders(origin),
   body: JSON.stringify({
     error: "Internal Server Error",
     code: "INTERNAL_ERROR",

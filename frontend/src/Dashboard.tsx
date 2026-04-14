@@ -18,6 +18,7 @@ import {
   RefreshCw,
   TrendingUp,
   TrendingDown,
+  DollarSign,
   Download,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -53,16 +54,8 @@ function exportToCsv(transactions: TransactionDTO[]): void {
   URL.revokeObjectURL(url);
 }
 
-const TOOLTIP_STYLE = {
-  backgroundColor: "#111620",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: "10px",
-  padding: "10px 14px",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-  fontFamily: "'DM Mono', monospace",
-  fontSize: "13px",
-  color: "#f0f0f0",
-};
+const INCOME_COLORS = ["#14b8a6", "#0ea5e9", "#22d3ee", "#34d399", "#6ee7b7"];
+const EXPENSE_COLORS = ["#f87171", "#fb7185", "#f97316", "#fbbf24", "#e879f9"];
 
 export default function Dashboard() {
   const {
@@ -91,8 +84,10 @@ export default function Dashboard() {
   const totalExpense = expenseEntries.reduce((s, i) => s + i.amount, 0);
   const net = totalIncome - totalExpense;
 
-  const activeData = viewMode === "income" ? incomeEntries : expenseEntries;
   const isIncome = viewMode === "income";
+  const activeData = isIncome ? incomeEntries : expenseEntries;
+  const MAIN = isIncome ? "#14b8a6" : "#f87171";
+  const COLORS = isIncome ? INCOME_COLORS : EXPENSE_COLORS;
 
   const groupedData = activeData.reduce(
     (acc: { name: string; value: number }[], curr) => {
@@ -104,123 +99,104 @@ export default function Dashboard() {
     [],
   );
 
-  const INCOME_COLORS = ["#00d4aa", "#00b894", "#55efc4", "#81ecec", "#74b9ff"];
-  const EXPENSE_COLORS = [
-    "#ff5c5c",
-    "#fd79a8",
-    "#e17055",
-    "#fab1a0",
-    "#ff7675",
-  ];
-  const COLORS = isIncome ? INCOME_COLORS : EXPENSE_COLORS;
-  const MAIN = isIncome ? "#00d4aa" : "#ff5c5c";
-
-  const handleDelete = (sk: string) => {
-    if (!confirm("Delete this entry?")) return;
-    deleteMutation.mutate(sk);
+  const tooltipStyle = {
+    backgroundColor: "var(--tooltip-bg)",
+    border: "1px solid var(--tooltip-border)",
+    borderRadius: "10px",
+    fontSize: "13px",
+    color: "var(--text-primary)",
   };
 
   return (
     <div className="space-y-4">
-      {/* Stats row */}
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
           {
             label: "Income",
             value: totalIncome,
-            color: "#00d4aa",
-            dimColor: "rgba(0,212,170,0.08)",
-            borderColor: "rgba(0,212,170,0.15)",
             mode: "income" as const,
+            teal: true,
             icon: TrendingUp,
           },
           {
             label: "Expenses",
             value: totalExpense,
-            color: "#ff5c5c",
-            dimColor: "rgba(255,92,92,0.08)",
-            borderColor: "rgba(255,92,92,0.15)",
             mode: "expense" as const,
+            teal: false,
             icon: TrendingDown,
           },
           {
             label: "Net",
             value: net,
-            color: net >= 0 ? "#00d4aa" : "#ff5c5c",
-            dimColor:
-              net >= 0 ? "rgba(0,212,170,0.08)" : "rgba(255,92,92,0.08)",
-            borderColor:
-              net >= 0 ? "rgba(0,212,170,0.15)" : "rgba(255,92,92,0.15)",
             mode: null,
-            icon: null,
+            teal: net >= 0,
+            icon: DollarSign,
           },
-        ].map(
-          ({
-            label,
-            value,
-            color,
-            dimColor,
-            borderColor,
-            mode,
-            icon: Icon,
-          }) => (
-            <div
-              key={label}
-              onClick={() => mode && setViewMode(mode)}
-              className="rounded-2xl p-4 transition-all duration-200"
-              style={{
-                background: dimColor,
-                border: `1px solid ${viewMode === mode ? borderColor : "var(--border)"}`,
-                cursor: mode ? "pointer" : "default",
-                outline:
-                  viewMode === mode ? `1px solid ${borderColor}` : "none",
-              }}
-              onMouseEnter={(e) => {
-                if (mode) e.currentTarget.style.borderColor = borderColor;
-              }}
-              onMouseLeave={(e) => {
-                if (mode && viewMode !== mode)
-                  e.currentTarget.style.borderColor = "var(--border)";
-              }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span
-                  className="text-xs tracking-widest uppercase font-medium"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  {label}
-                </span>
-                {Icon && <Icon className="w-3.5 h-3.5" style={{ color }} />}
-              </div>
-              <p
-                className="text-2xl font-bold mono tracking-tight"
-                style={{ color }}
+        ].map(({ label, value, mode, teal, icon: Icon }) => (
+          <div
+            key={label}
+            onClick={() => mode && setViewMode(mode)}
+            className="rounded-2xl p-4 transition-all duration-200"
+            style={{
+              background: teal
+                ? "rgba(20,184,166,0.07)"
+                : "rgba(248,113,113,0.07)",
+              border: `1px solid ${
+                viewMode === mode
+                  ? teal
+                    ? "rgba(20,184,166,0.3)"
+                    : "rgba(248,113,113,0.3)"
+                  : "var(--border)"
+              }`,
+              cursor: mode ? "pointer" : "default",
+              outline:
+                viewMode === mode
+                  ? `1px solid ${teal ? "rgba(20,184,166,0.2)" : "rgba(248,113,113,0.2)"}`
+                  : "none",
+              opacity: mode && viewMode !== mode ? 0.75 : 1,
+            }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span
+                className="text-xs uppercase tracking-widest font-medium"
+                style={{ color: "var(--text-muted)" }}
               >
-                ${value.toFixed(2)}
-              </p>
+                {label}
+              </span>
+              <Icon
+                className="w-3.5 h-3.5"
+                style={{ color: teal ? "#14b8a6" : "#f87171" }}
+              />
             </div>
-          ),
-        )}
+            <p
+              className="text-2xl font-bold font-mono tracking-tight"
+              style={{ color: teal ? "#14b8a6" : "#f87171" }}
+            >
+              ${value.toFixed(2)}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Main card */}
       <div className="card p-5">
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <h2
-              className="font-bold text-base"
+              className="font-semibold text-sm"
               style={{ color: "var(--text-primary)" }}
             >
               {isIncome ? "Income" : "Expenses"}
             </h2>
             <span
-              className="text-xs px-2 py-0.5 rounded-md font-bold uppercase tracking-wider"
+              className="tag"
               style={{
                 background: isIncome
-                  ? "rgba(0,212,170,0.1)"
-                  : "rgba(255,92,92,0.1)",
-                color: isIncome ? "#00d4aa" : "#ff5c5c",
+                  ? "rgba(20,184,166,0.1)"
+                  : "rgba(248,113,113,0.1)",
+                color: isIncome ? "#14b8a6" : "#f87171",
               }}
             >
               {viewMode}
@@ -231,7 +207,7 @@ export default function Dashboard() {
             <div
               className="flex rounded-lg p-0.5 gap-0.5"
               style={{
-                background: "rgba(0,0,0,0.3)",
+                background: "var(--bg-input)",
                 border: "1px solid var(--border)",
               }}
             >
@@ -243,7 +219,7 @@ export default function Dashboard() {
                   style={
                     chartType === t
                       ? {
-                          background: "var(--surface-hover)",
+                          background: "var(--bg-card-hover)",
                           color: "var(--text-primary)",
                         }
                       : { color: "var(--text-muted)" }
@@ -256,42 +232,13 @@ export default function Dashboard() {
 
             <button
               onClick={() => exportToCsv(allEntries)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-200"
-              style={{
-                color: "var(--text-secondary)",
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--text-primary)";
-                e.currentTarget.style.borderColor = "var(--border-hover)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
-                e.currentTarget.style.borderColor = "var(--border)";
-              }}
+              className="btn-ghost px-3 py-1.5 text-xs gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
               CSV
             </button>
 
-            <button
-              onClick={() => refetch()}
-              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
-              style={{
-                color: "var(--text-secondary)",
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--text-primary)";
-                e.currentTarget.style.borderColor = "var(--border-hover)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-secondary)";
-                e.currentTarget.style.borderColor = "var(--border)";
-              }}
-            >
+            <button onClick={() => refetch()} className="btn-ghost w-8 h-8">
               <RefreshCw
                 className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
               />
@@ -301,51 +248,50 @@ export default function Dashboard() {
 
         {/* Chart */}
         {isLoading ? (
-          <div className="h-56 flex items-center justify-center">
+          <div className="h-52 flex items-center justify-center">
             <div
               className="w-5 h-5 border-2 rounded-full animate-spin"
               style={{
                 borderColor: "var(--border)",
-                borderTopColor: "var(--accent)",
+                borderTopColor: "#14b8a6",
               }}
             />
           </div>
+        ) : activeData.length === 0 ? (
+          <div className="h-52 flex items-center justify-center">
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              No {viewMode} data yet
+            </p>
+          </div>
         ) : (
-          <div className="h-56 w-full mb-6">
+          <div className="h-52 w-full mb-5">
             <ResponsiveContainer width="100%" height="100%">
-              {activeData.length === 0 ? (
-                <div
-                  className="flex items-center justify-center h-full text-sm"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  No {viewMode} data yet
-                </div>
-              ) : chartType === "bar" ? (
-                <BarChart data={groupedData} barSize={32}>
+              {chartType === "bar" ? (
+                <BarChart data={groupedData} barSize={28}>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.04)"
+                    stroke="var(--grid-color)"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="name"
-                    stroke="var(--text-muted)"
+                    stroke="var(--axis-color)"
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis
-                    stroke="var(--text-muted)"
+                    stroke="var(--axis-color)"
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(v) => `$${v}`}
                   />
                   <Tooltip
-                    contentStyle={TOOLTIP_STYLE}
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    contentStyle={tooltipStyle}
+                    cursor={{ fill: "var(--border)" }}
                   />
-                  <Bar dataKey="value" fill={MAIN} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="value" fill={MAIN} radius={[5, 5, 0, 0]} />
                 </BarChart>
               ) : chartType === "pie" ? (
                 <PieChart>
@@ -355,38 +301,38 @@ export default function Dashboard() {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={90}
-                    innerRadius={50}
+                    outerRadius={85}
+                    innerRadius={48}
                     stroke="none"
                   >
                     {groupedData.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip contentStyle={tooltipStyle} />
                 </PieChart>
               ) : (
                 <LineChart data={activeData}>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.04)"
+                    stroke="var(--grid-color)"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="date"
-                    stroke="var(--text-muted)"
+                    stroke="var(--axis-color)"
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis
-                    stroke="var(--text-muted)"
+                    stroke="var(--axis-color)"
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(v) => `$${v}`}
                   />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Line
                     type="monotone"
                     dataKey="amount"
@@ -394,7 +340,7 @@ export default function Dashboard() {
                     strokeWidth={2}
                     dot={{
                       r: 3,
-                      fill: "#080c14",
+                      fill: "var(--bg-base)",
                       strokeWidth: 2,
                       stroke: MAIN,
                     }}
@@ -405,10 +351,10 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Transactions list */}
+        {/* Transaction list */}
         <div>
           <p
-            className="text-xs tracking-widest uppercase mb-3 font-medium"
+            className="text-xs uppercase tracking-widest font-medium mb-3"
             style={{ color: "var(--text-muted)" }}
           >
             Recent {viewMode} transactions
@@ -420,18 +366,18 @@ export default function Dashboard() {
                   key={entry.id}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
+                  exit={{ opacity: 0, x: -8 }}
                   className="group flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200"
                   style={{
-                    background: "var(--surface)",
+                    background: "var(--bg-card)",
                     border: "1px solid var(--border)",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--surface-hover)";
+                    e.currentTarget.style.background = "var(--bg-card-hover)";
                     e.currentTarget.style.borderColor = "var(--border-hover)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "var(--surface)";
+                    e.currentTarget.style.background = "var(--bg-card)";
                     e.currentTarget.style.borderColor = "var(--border)";
                   }}
                 >
@@ -441,19 +387,19 @@ export default function Dashboard() {
                       style={{
                         background:
                           entry.transactionType === "expense"
-                            ? "rgba(255,92,92,0.1)"
-                            : "rgba(0,212,170,0.1)",
+                            ? "rgba(248,113,113,0.1)"
+                            : "rgba(20,184,166,0.1)",
                       }}
                     >
                       {entry.transactionType === "expense" ? (
                         <TrendingDown
                           className="w-3.5 h-3.5"
-                          style={{ color: "#ff5c5c" }}
+                          style={{ color: "#f87171" }}
                         />
                       ) : (
                         <TrendingUp
                           className="w-3.5 h-3.5"
-                          style={{ color: "#00d4aa" }}
+                          style={{ color: "#14b8a6" }}
                         />
                       )}
                     </div>
@@ -475,12 +421,12 @@ export default function Dashboard() {
 
                   <div className="flex items-center gap-3">
                     <span
-                      className="text-sm font-bold mono"
+                      className="text-sm font-bold font-mono"
                       style={{
                         color:
                           entry.transactionType === "expense"
-                            ? "#ff5c5c"
-                            : "#00d4aa",
+                            ? "#f87171"
+                            : "#14b8a6",
                       }}
                     >
                       {entry.transactionType === "expense" ? "-" : "+"}$
@@ -489,14 +435,14 @@ export default function Dashboard() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(entry.id);
+                        if (confirm("Delete?")) deleteMutation.mutate(entry.id);
                       }}
                       className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
                       style={{ color: "var(--text-muted)" }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background =
-                          "rgba(255,92,92,0.1)";
-                        e.currentTarget.style.color = "#ff5c5c";
+                          "rgba(248,113,113,0.1)";
+                        e.currentTarget.style.color = "#f87171";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "transparent";
@@ -516,17 +462,9 @@ export default function Dashboard() {
                 disabled={isFetchingNextPage}
                 className="w-full py-2.5 text-xs rounded-xl transition-all duration-200 font-medium"
                 style={{
-                  color: "var(--text-secondary)",
-                  background: "var(--surface)",
+                  background: "var(--bg-card)",
                   border: "1px solid var(--border)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--text-primary)";
-                  e.currentTarget.style.borderColor = "var(--border-hover)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-secondary)";
-                  e.currentTarget.style.borderColor = "var(--border)";
+                  color: "var(--text-secondary)",
                 }}
               >
                 {isFetchingNextPage ? "Loading..." : "Load more"}

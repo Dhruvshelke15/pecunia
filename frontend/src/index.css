@@ -1,129 +1,145 @@
-@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --accent: #00d4aa;
-  --accent-dim: rgba(0, 212, 170, 0.12);
-  --accent-border: rgba(0, 212, 170, 0.25);
-  --danger: #ff5c5c;
-  --danger-dim: rgba(255, 92, 92, 0.1);
-  --surface: rgba(255, 255, 255, 0.03);
-  --surface-hover: rgba(255, 255, 255, 0.06);
+  --bg-base: #070b12;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
+  --bg-input: rgba(0, 0, 0, 0.3);
+  --bg-input-hover: rgba(0, 0, 0, 0.4);
   --border: rgba(255, 255, 255, 0.07);
-  --border-hover: rgba(255, 255, 255, 0.14);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-focus: rgba(20, 184, 166, 0.4);
   --text-primary: #f0f0f0;
-  --text-secondary: #8a8f98;
-  --text-muted: #4a4f58;
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-muted: rgba(255, 255, 255, 0.25);
+  --text-placeholder: rgba(255, 255, 255, 0.2);
+  --nav-bg: rgba(7, 11, 18, 0.9);
+  --axis-color: rgba(255, 255, 255, 0.2);
+  --grid-color: rgba(255, 255, 255, 0.04);
+  --tooltip-bg: #0f1520;
+  --tooltip-border: rgba(255, 255, 255, 0.1);
+  --select-bg: #111a28;
+  --option-bg: #0f1520;
 }
 
-* {
-  box-sizing: border-box;
+[data-theme="light"] {
+  --bg-base: #f4f6fa;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-card-hover: rgba(255, 255, 255, 1);
+  --bg-input: rgba(0, 0, 0, 0.04);
+  --bg-input-hover: rgba(0, 0, 0, 0.07);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --border-focus: rgba(20, 184, 166, 0.5);
+  --text-primary: #0f172a;
+  --text-secondary: rgba(15, 23, 42, 0.55);
+  --text-muted: rgba(15, 23, 42, 0.35);
+  --text-placeholder: rgba(15, 23, 42, 0.3);
+  --nav-bg: rgba(244, 246, 250, 0.92);
+  --axis-color: rgba(15, 23, 42, 0.3);
+  --grid-color: rgba(15, 23, 42, 0.06);
+  --tooltip-bg: #ffffff;
+  --tooltip-border: rgba(0, 0, 0, 0.1);
+  --select-bg: #ffffff;
+  --option-bg: #ffffff;
 }
 
-body {
-  font-family: "Syne", sans-serif;
-  background: #080c14;
-  color: var(--text-primary);
-  min-height: 100vh;
-  overflow-x: hidden;
+@layer base {
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      sans-serif;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(
-      ellipse 80% 50% at 20% -10%,
-      rgba(0, 212, 170, 0.06) 0%,
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse 60% 40% at 80% 100%,
-      rgba(99, 102, 241, 0.05) 0%,
-      transparent 60%
-    );
-  pointer-events: none;
-  z-index: 0;
+@layer components {
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease;
+  }
+  .card:hover {
+    border-color: var(--border-hover);
+  }
+  .field-input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  .field-input::placeholder {
+    color: var(--text-placeholder);
+  }
+  .field-input:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-input-hover);
+  }
+  .field-input:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+  }
+  .btn-ghost {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+  }
+  .btn-ghost:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
 }
 
-#root {
-  position: relative;
-  z-index: 1;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  transition: border-color 0.2s ease;
-}
-
-.card:hover {
-  border-color: var(--border-hover);
-}
-
-.field-input {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: var(--text-primary);
-  font-family: "Syne", sans-serif;
-  font-size: 14px;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-  outline: none;
-}
-
-.field-input::placeholder {
-  color: var(--text-muted);
-}
-
-.field-input:focus {
-  border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.08);
-}
-
-.field-input:hover:not(:focus) {
-  border-color: var(--border-hover);
-}
-
-.mono {
-  font-family: "DM Mono", monospace;
-}
-
-/* Recharts tooltip override */
-.recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: #111620 !important;
-  border: 1px solid var(--border-hover) !important;
+/* Recharts tooltip */
+.recharts-default-tooltip {
+  background: var(--tooltip-bg) !important;
+  border: 1px solid var(--tooltip-border) !important;
   border-radius: 10px !important;
-  padding: 10px 14px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
 }
-
-.recharts-tooltip-item {
-  color: var(--text-primary) !important;
-  font-family: "DM Mono", monospace !important;
-  font-size: 13px !important;
-}
-
 .recharts-tooltip-label {
   color: var(--text-secondary) !important;
-  font-family: "Syne", sans-serif !important;
-  font-size: 12px !important;
+  font-size: 11px !important;
   margin-bottom: 4px !important;
 }
+.recharts-tooltip-item {
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+  font-family: ui-monospace, monospace !important;
+}
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;
 }
@@ -131,16 +147,9 @@ body::before {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 170, 0.2);
+  background: rgba(20, 184, 166, 0.25);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 212, 170, 0.4);
-}
-
-/* Amplify auth overrides */
-[data-amplify-authenticator] {
-  --amplify-colors-brand-primary-80: #00d4aa;
-  --amplify-colors-brand-primary-90: #00b894;
-  --amplify-colors-brand-primary-100: #00a87e;
+  background: rgba(20, 184, 166, 0.45);
 }

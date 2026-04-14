@@ -12,15 +12,16 @@ export const handler = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
   const requestId = event.requestContext.requestId;
+  const origin = event.headers?.origin ?? event.headers?.Origin;
 
   try {
     const userId = getUserId(event);
-    if (!userId) return unauthorized();
+    if (!userId) return unauthorized(origin);
 
     const log = logger.withContext({ requestId, userId });
 
     const rawId = event.pathParameters?.id;
-    if (!rawId) return badRequest("Missing entry ID");
+    if (!rawId) return badRequest("Missing entry ID", "BAD_REQUEST", origin);
 
     const entryId = decodeURIComponent(rawId);
 
@@ -38,11 +39,11 @@ export const handler = async (
 
     log.info("entry deleted", { sk: entryId });
 
-    return ok({ message: "Entry deleted successfully" });
+    return ok({ message: "Entry deleted successfully" }, origin);
   } catch (error) {
     logger
       .withContext({ requestId })
       .error("deleteEntry failed", { error: String(error) });
-    return serverError(requestId);
+    return serverError(requestId, origin);
   }
 };

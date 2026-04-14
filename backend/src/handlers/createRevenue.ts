@@ -19,10 +19,11 @@ export const handler = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
   const requestId = event.requestContext.requestId;
+  const origin = event.headers?.origin ?? event.headers?.Origin;
 
   try {
     const userId = getUserId(event);
-    if (!userId) return unauthorized();
+    if (!userId) return unauthorized(origin);
 
     const log = logger.withContext({ requestId, userId });
 
@@ -30,7 +31,7 @@ export const handler = async (
     try {
       rawBody = JSON.parse(event.body ?? "{}");
     } catch {
-      return badRequest("Invalid JSON body");
+      return badRequest("Invalid JSON body", "BAD_REQUEST", origin);
     }
 
     const parseResult = createTransactionSchema.safeParse(rawBody);
@@ -38,7 +39,7 @@ export const handler = async (
       const message = parseResult.error.issues
         .map((e) => `${e.path.join(".")}: ${e.message}`)
         .join(", ");
-      return badRequest(message, "VALIDATION_ERROR");
+      return badRequest(message, "VALIDATION_ERROR", origin);
     }
 
     const input = parseResult.data;
@@ -69,11 +70,11 @@ export const handler = async (
     });
 
     const { PK: _pk, SK: _sk, GSI1PK: _g1pk, GSI1SK: _g1sk, ...dto } = item;
-    return created({ id: sk, ...dto });
+    return created({ id: sk, ...dto }, origin);
   } catch (error) {
     logger
       .withContext({ requestId })
       .error("createTransaction failed", { error: String(error) });
-    return serverError(requestId);
+    return serverError(requestId, origin);
   }
 };

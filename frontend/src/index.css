@@ -1,57 +1,146 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Premium Fintech Background */
+:root {
+  --accent: #00d4aa;
+  --accent-dim: rgba(0, 212, 170, 0.12);
+  --accent-border: rgba(0, 212, 170, 0.25);
+  --danger: #ff5c5c;
+  --danger-dim: rgba(255, 92, 92, 0.1);
+  --surface: rgba(255, 255, 255, 0.03);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-hover: rgba(255, 255, 255, 0.14);
+  --text-primary: #f0f0f0;
+  --text-secondary: #8a8f98;
+  --text-muted: #4a4f58;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-  background:
-    radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-    linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #0a0f1e 100%);
-  color: #f8fafc;
+  font-family: "Syne", sans-serif;
+  background: #080c14;
+  color: var(--text-primary);
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Glassmorphism Card Utility */
-.glass-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(
+      ellipse 80% 50% at 20% -10%,
+      rgba(0, 212, 170, 0.06) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 100%,
+      rgba(99, 102, 241, 0.05) 0%,
+      transparent 60%
+    );
+  pointer-events: none;
+  z-index: 0;
 }
 
-.glass-input {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
+#root {
+  position: relative;
+  z-index: 1;
 }
 
-.glass-input::placeholder {
-  color: rgba(148, 163, 184, 0.5);
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: border-color 0.2s ease;
 }
 
-.glass-input:focus {
+.card:hover {
+  border-color: var(--border-hover);
+}
+
+.field-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-family: "Syne", sans-serif;
+  font-size: 14px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   outline: none;
-  border-color: #6366f1;
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-/* Custom scrollbar */
+.field-input::placeholder {
+  color: var(--text-muted);
+}
+
+.field-input:focus {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.08);
+}
+
+.field-input:hover:not(:focus) {
+  border-color: var(--border-hover);
+}
+
+.mono {
+  font-family: "DM Mono", monospace;
+}
+
+/* Recharts tooltip override */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #111620 !important;
+  border: 1px solid var(--border-hover) !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.recharts-tooltip-item {
+  color: var(--text-primary) !important;
+  font-family: "DM Mono", monospace !important;
+  font-size: 13px !important;
+}
+
+.recharts-tooltip-label {
+  color: var(--text-secondary) !important;
+  font-family: "Syne", sans-serif !important;
+  font-size: 12px !important;
+  margin-bottom: 4px !important;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.3);
-  border-radius: 3px;
+  background: rgba(0, 212, 170, 0.2);
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.5);
+  background: rgba(0, 212, 170, 0.4);
+}
+
+/* Amplify auth overrides */
+[data-amplify-authenticator] {
+  --amplify-colors-brand-primary-80: #00d4aa;
+  --amplify-colors-brand-primary-90: #00b894;
+  --amplify-colors-brand-primary-100: #00a87e;
 }

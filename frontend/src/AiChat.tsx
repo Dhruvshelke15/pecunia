@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Sparkles, X } from "lucide-react";
+import { Send, Loader2, X, Sparkles } from "lucide-react";
 import { useAiChat } from "./hooks/useAiChat";
 
 const SUGGESTIONS = [
   "How much did I spend this month?",
   "What is my biggest expense category?",
-  "How does my income compare to expenses?",
+  "Compare my income vs expenses",
   "What were my top 3 expenses?",
 ];
 
@@ -17,7 +17,7 @@ export default function AiChat() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleSend = async () => {
     const trimmed = input.trim();
@@ -26,52 +26,82 @@ export default function AiChat() {
     await sendMessage(trimmed);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   return (
-    <div className="glass-card rounded-2xl p-6 flex flex-col h-[600px]">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-indigo-600/20 rounded-lg">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
+    <div className="card flex flex-col" style={{ height: "420px" }}>
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-5 py-4"
+        style={{ borderBottom: "1px solid var(--border)" }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{
+              background: "rgba(99,102,241,0.15)",
+              border: "1px solid rgba(99,102,241,0.25)",
+            }}
+          >
+            <Sparkles className="w-3.5 h-3.5" style={{ color: "#818cf8" }} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">AI Assistant</h2>
-            <p className="text-xs text-slate-400">
-              Ask anything about your finances
+            <p
+              className="text-sm font-bold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              AI Assistant
+            </p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Ask about your finances
             </p>
           </div>
         </div>
         {messages.length > 0 && (
           <button
             onClick={clearMessages}
-            className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-lg transition-all"
+            className="w-6 h-6 rounded-md flex items-center justify-center transition-all"
+            style={{ color: "var(--text-muted)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--surface-hover)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-muted)";
+            }}
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center gap-4">
-            <p className="text-sm text-slate-500">Try asking:</p>
-            <div className="grid grid-cols-1 gap-2 w-full">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => sendMessage(s)}
-                  className="text-left px-4 py-2.5 text-sm text-slate-300 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+          <div className="h-full flex flex-col justify-center gap-2">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                onClick={() => sendMessage(s)}
+                className="text-left text-xs px-3.5 py-2.5 rounded-xl transition-all duration-200"
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-secondary)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--surface-hover)";
+                  e.currentTarget.style.borderColor = "var(--border-hover)";
+                  e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "var(--surface)";
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+              >
+                {s}
+              </button>
+            ))}
           </div>
         ) : (
           messages.map((msg, i) => (
@@ -80,11 +110,22 @@ export default function AiChat() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                className="max-w-[85%] text-xs leading-relaxed px-3.5 py-2.5 rounded-2xl whitespace-pre-wrap"
+                style={
                   msg.role === "user"
-                    ? "bg-indigo-600 text-white rounded-br-sm"
-                    : "bg-white/5 text-slate-200 border border-white/5 rounded-bl-sm"
-                }`}
+                    ? {
+                        background: "rgba(0,212,170,0.12)",
+                        border: "1px solid rgba(0,212,170,0.2)",
+                        color: "var(--text-primary)",
+                        borderBottomRightRadius: "4px",
+                      }
+                    : {
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        color: "var(--text-secondary)",
+                        borderBottomLeftRadius: "4px",
+                      }
+                }
               >
                 {msg.content}
               </div>
@@ -94,33 +135,68 @@ export default function AiChat() {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white/5 border border-white/5 px-4 py-3 rounded-2xl rounded-bl-sm">
-              <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+            <div
+              className="px-3.5 py-2.5 rounded-2xl"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderBottomLeftRadius: "4px",
+              }}
+            >
+              <Loader2
+                className="w-3.5 h-3.5 animate-spin"
+                style={{ color: "var(--accent)" }}
+              />
             </div>
           </div>
         )}
 
-        {error && <p className="text-center text-xs text-red-400">{error}</p>}
+        {error && (
+          <p className="text-center text-xs" style={{ color: "var(--danger)" }}>
+            {error}
+          </p>
+        )}
 
         <div ref={bottomRef} />
       </div>
 
-      <div className="flex gap-2">
+      {/* Input */}
+      <div
+        className="px-4 py-3 flex gap-2"
+        style={{ borderTop: "1px solid var(--border)" }}
+      >
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask about your finances..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder="Ask anything..."
           disabled={isLoading}
-          className="flex-1 px-4 py-2.5 rounded-xl glass-input text-sm focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50"
+          className="field-input flex-1 text-xs"
+          style={{ padding: "8px 12px" }}
         />
         <button
           onClick={handleSend}
           disabled={!input.trim() || isLoading}
-          className="p-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all"
+          className="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0"
+          style={{
+            background:
+              input.trim() && !isLoading
+                ? "var(--accent-dim)"
+                : "var(--surface)",
+            border: `1px solid ${input.trim() && !isLoading ? "var(--accent-border)" : "var(--border)"}`,
+            color:
+              input.trim() && !isLoading
+                ? "var(--accent)"
+                : "var(--text-muted)",
+          }}
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

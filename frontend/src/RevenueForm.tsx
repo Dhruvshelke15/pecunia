@@ -1,11 +1,16 @@
 import { useState } from "react";
-import {
-  PlusCircle,
-  Loader2,
-  ArrowDownCircle,
-  ArrowUpCircle,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCreateTransaction } from "./hooks/useTransactions";
+
+const CATEGORIES = [
+  "Freelance",
+  "Salary",
+  "Investments",
+  "Food",
+  "Utilities",
+  "Entertainment",
+  "Other",
+];
 
 export default function RevenueForm() {
   const createTransaction = useCreateTransaction();
@@ -16,7 +21,6 @@ export default function RevenueForm() {
   const [transactionType, setTransactionType] = useState<"income" | "expense">(
     "income",
   );
-
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     amount: "",
@@ -24,83 +28,106 @@ export default function RevenueForm() {
     category: "Freelance",
   });
 
+  const isIncome = transactionType === "income";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
-
     try {
       await createTransaction.mutateAsync({
         ...formData,
         amount: Number(formData.amount),
         transactionType,
       });
-      setMessage({ text: "Transaction recorded!", type: "success" });
+      setMessage({ text: "Transaction recorded", type: "success" });
       setFormData({ ...formData, amount: "", source: "" });
     } catch {
-      setMessage({ text: "Failed to save.", type: "error" });
+      setMessage({ text: "Failed to save", type: "error" });
     }
   };
 
   return (
-    <div className="glass-card p-6 rounded-2xl relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-
-      <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-        <PlusCircle className="w-5 h-5 text-indigo-400" />
-        New Entry
-      </h2>
-
-      <div className="grid grid-cols-2 gap-2 p-1 bg-black/20 rounded-xl mb-6">
-        <button
-          type="button"
-          onClick={() => setTransactionType("income")}
-          className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-            transactionType === "income"
-              ? "bg-emerald-500/20 text-emerald-400 shadow-sm"
-              : "text-slate-400 hover:text-slate-200"
-          }`}
+    <div className="card p-5">
+      <div className="flex items-center justify-between mb-5">
+        <h2
+          className="font-bold text-sm tracking-widest uppercase"
+          style={{ color: "var(--text-secondary)" }}
         >
-          <ArrowUpCircle className="w-4 h-4" /> Income
-        </button>
-        <button
-          type="button"
-          onClick={() => setTransactionType("expense")}
-          className={`flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-            transactionType === "expense"
-              ? "bg-rose-500/20 text-rose-400 shadow-sm"
-              : "text-slate-400 hover:text-slate-200"
-          }`}
+          New Entry
+        </h2>
+        <div
+          className="flex rounded-lg p-0.5 gap-0.5"
+          style={{
+            background: "rgba(0,0,0,0.3)",
+            border: "1px solid var(--border)",
+          }}
         >
-          <ArrowDownCircle className="w-4 h-4" /> Expense
-        </button>
+          {(["income", "expense"] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setTransactionType(type)}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md capitalize transition-all duration-200"
+              style={
+                transactionType === type
+                  ? {
+                      background:
+                        type === "income"
+                          ? "rgba(0,212,170,0.15)"
+                          : "rgba(255,92,92,0.15)",
+                      color:
+                        type === "income" ? "var(--accent)" : "var(--danger)",
+                      border: `1px solid ${type === "income" ? "var(--accent-border)" : "rgba(255,92,92,0.25)"}`,
+                    }
+                  : {
+                      color: "var(--text-muted)",
+                      border: "1px solid transparent",
+                    }
+              }
+            >
+              {type}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+      <form onSubmit={handleSubmit} className="space-y-3.5">
+        <div>
+          <label
+            className="block text-xs mb-1.5 tracking-wider uppercase"
+            style={{ color: "var(--text-muted)" }}
+          >
             Date
           </label>
           <input
             type="date"
             required
-            className="w-full px-4 py-2 rounded-lg glass-input focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            className="field-input"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+        <div>
+          <label
+            className="block text-xs mb-1.5 tracking-wider uppercase"
+            style={{ color: "var(--text-muted)" }}
+          >
             Amount
           </label>
           <div className="relative">
-            <span className="absolute left-4 top-2.5 text-slate-400">$</span>
+            <span
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm mono"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              $
+            </span>
             <input
               type="number"
               step="0.01"
               required
               placeholder="0.00"
-              className="w-full pl-8 pr-4 py-2 rounded-lg glass-input focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono"
+              className="field-input mono pl-8"
               value={formData.amount}
               onChange={(e) =>
                 setFormData({ ...formData, amount: e.target.value })
@@ -109,19 +136,20 @@ export default function RevenueForm() {
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+        <div>
+          <label
+            className="block text-xs mb-1.5 tracking-wider uppercase"
+            style={{ color: "var(--text-muted)" }}
+          >
             Source
           </label>
           <input
             type="text"
             required
             placeholder={
-              transactionType === "income"
-                ? "e.g. Salary, Freelance"
-                : "e.g. Netflix, Rent"
+              isIncome ? "e.g. Salary, Freelance" : "e.g. Netflix, Rent"
             }
-            className="w-full px-4 py-2 rounded-lg glass-input focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            className="field-input"
             value={formData.source}
             onChange={(e) =>
               setFormData({ ...formData, source: e.target.value })
@@ -129,47 +157,62 @@ export default function RevenueForm() {
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+        <div>
+          <label
+            className="block text-xs mb-1.5 tracking-wider uppercase"
+            style={{ color: "var(--text-muted)" }}
+          >
             Category
           </label>
           <select
-            className="w-full px-4 py-2 rounded-lg glass-input focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+            className="field-input appearance-none"
             value={formData.category}
             onChange={(e) =>
               setFormData({ ...formData, category: e.target.value })
             }
+            style={{ cursor: "pointer" }}
           >
-            <option className="bg-slate-800">Freelance</option>
-            <option className="bg-slate-800">Salary</option>
-            <option className="bg-slate-800">Investments</option>
-            <option className="bg-slate-800">Food</option>
-            <option className="bg-slate-800">Utilities</option>
-            <option className="bg-slate-800">Entertainment</option>
-            <option className="bg-slate-800">Other</option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c} style={{ background: "#111620" }}>
+                {c}
+              </option>
+            ))}
           </select>
         </div>
 
         <button
           type="submit"
           disabled={createTransaction.isPending}
-          className="w-full mt-6 flex justify-center items-center gap-2 py-3 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow-lg shadow-indigo-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 rounded-xl text-sm font-bold tracking-wide transition-all duration-200 flex items-center justify-center gap-2 mt-1"
+          style={{
+            background: isIncome
+              ? "linear-gradient(135deg, rgba(0,212,170,0.9), rgba(0,180,145,0.9))"
+              : "linear-gradient(135deg, rgba(255,92,92,0.9), rgba(220,60,60,0.9))",
+            color: "#080c14",
+            opacity: createTransaction.isPending ? 0.6 : 1,
+          }}
         >
           {createTransaction.isPending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            "Add Transaction"
+            `Add ${isIncome ? "Income" : "Expense"}`
           )}
         </button>
 
         {message && (
-          <div
-            className={`text-center text-sm font-medium mt-2 ${
-              message.type === "success" ? "text-emerald-400" : "text-red-400"
-            }`}
+          <p
+            className="text-center text-xs py-2 rounded-lg"
+            style={{
+              color:
+                message.type === "success" ? "var(--accent)" : "var(--danger)",
+              background:
+                message.type === "success"
+                  ? "var(--accent-dim)"
+                  : "var(--danger-dim)",
+            }}
           >
             {message.text}
-          </div>
+          </p>
         )}
       </form>
     </div>

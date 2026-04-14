@@ -48,6 +48,8 @@ export const handler = async (
     const item = {
       PK: `USER#${userId}`,
       SK: sk,
+      GSI1PK: `USER#${userId}#CATEGORY#${input.category}`,
+      GSI1SK: `${input.date}#${id}`,
       type: "Transaction",
       transactionType: input.transactionType,
       date: input.date,
@@ -66,7 +68,7 @@ export const handler = async (
       transactionType: input.transactionType,
     });
 
-    const { PK: _pk, SK: _sk, ...dto } = item;
+    const { PK: _pk, SK: _sk, GSI1PK: _g1pk, GSI1SK: _g1sk, ...dto } = item;
     return created({ id: sk, ...dto });
   } catch (error) {
     logger

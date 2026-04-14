@@ -19,24 +19,66 @@ export class PecuniaApiStack extends cdk.Stack {
 
   constructor(scope: Construct, id: string, props: PecuniaApiStackProps) {
     super(scope, id, props);
+
+    const commonEnv = {
+      TABLE_NAME: props.table.tableName,
+      ALLOWED_ORIGIN: props.allowedOrigin,
+    };
+
+    const commonLambdaProps = {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      environment: commonEnv,
+    };
+
+    // 1. Create Lambda
     const createRevenueLambda = new nodejs.NodejsFunction(
       this,
       "CreateRevenueHandler",
       {
-        runtime: lambda.Runtime.NODEJS_20_X,
+        ...commonLambdaProps,
         entry: path.join(__dirname, "../backend/src/handlers/createRevenue.ts"),
         handler: "handler",
-        environment: {
-          TABLE_NAME: props.table.tableName,
-          ALLOWED_ORIGIN: props.allowedOrigin,
-        },
       },
     );
-
     props.table.grantWriteData(createRevenueLambda);
 
-    // 2. Define the Authorizer
-    // connects API Gateway to Cognito
+    // 2. Get Lambda
+    const getRevenueLambda = new nodejs.NodejsFunction(
+      this,
+      "GetRevenueHandler",
+      {
+        ...commonLambdaProps,
+        entry: path.join(__dirname, "../backend/src/handlers/getRevenue.ts"),
+        handler: "handler",
+      },
+    );
+    props.table.grantReadData(getRevenueLambda);
+
+    // 3. Delete Lambda
+    const deleteEntryLambda = new nodejs.NodejsFunction(
+      this,
+      "DeleteEntryHandler",
+      {
+        ...commonLambdaProps,
+        entry: path.join(__dirname, "../backend/src/handlers/deleteEntry.ts"),
+        handler: "handler",
+      },
+    );
+    props.table.grantWriteData(deleteEntryLambda);
+
+    // 4. Get by category Lambda
+    const getByCategoryLambda = new nodejs.NodejsFunction(
+      this,
+      "GetByCategoryHandler",
+      {
+        ...commonLambdaProps,
+        entry: path.join(__dirname, "../backend/src/handlers/getByCategory.ts"),
+        handler: "handler",
+      },
+    );
+    props.table.grantReadData(getByCategoryLambda);
+
+    // 5. Cognito authorizer
     const auth = new apigateway.CognitoUserPoolsAuthorizer(
       this,
       "PecuniaAuthorizer",
@@ -45,7 +87,12 @@ export class PecuniaApiStack extends cdk.Stack {
       },
     );
 
-    // 3. Create the API
+    const authOptions = {
+      authorizer: auth,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    };
+
+    // 6. API Gateway
     const api = new apigateway.RestApi(this, "PecuniaApi", {
       restApiName: "Pecunia Service",
       defaultCorsPreflightOptions: {
@@ -53,82 +100,43 @@ export class PecuniaApiStack extends cdk.Stack {
         allowMethods: apigateway.Cors.ALL_METHODS,
       },
     });
-    this.apiUrl = api.url;
-    new cdk.CfnOutput(this, "ApiUrl", { value: api.url });
 
-    this.apiStageArn = `arn:aws:apigateway:${this.region}::/restapis/${api.restApiId}/stages/${api.deploymentStage.stageName}`;
-
+    // /revenue
     const revenueResource = api.root.addResource("revenue");
-
-    // 4. Secure the Endpoint
-    // requests MUST have a valid JWT.
     revenueResource.addMethod(
       "POST",
       new apigateway.LambdaIntegration(createRevenueLambda),
-      {
-        authorizer: auth,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      },
+      authOptions,
     );
-
-    // 5. Define the GET Lambda
-    const getRevenueLambda = new nodejs.NodejsFunction(
-      this,
-      "GetRevenueHandler",
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        entry: path.join(__dirname, "../backend/src/handlers/getRevenue.ts"), // <--- Point to new file
-        handler: "handler",
-        environment: {
-          TABLE_NAME: props.table.tableName,
-          ALLOWED_ORIGIN: props.allowedOrigin,
-        },
-      },
-    );
-
-    // 6. Grant Read Permissions
-    props.table.grantReadData(getRevenueLambda);
-
-    // 7. Add GET Method to the /revenue resource
-    // Reusing the existing 'revenueResource' and 'auth' variables
     revenueResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(getRevenueLambda),
-      {
-        authorizer: auth,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      },
+      authOptions,
     );
 
-    // 8. Define DELETE Lambda
-    const deleteEntryLambda = new nodejs.NodejsFunction(
-      this,
-      "DeleteEntryHandler",
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        entry: path.join(__dirname, "../backend/src/handlers/deleteEntry.ts"),
-        handler: "handler",
-        environment: {
-          TABLE_NAME: props.table.tableName,
-          ALLOWED_ORIGIN: props.allowedOrigin,
-        },
-      },
-    );
-
-    // 9. Grant Permissions
-    props.table.grantWriteData(deleteEntryLambda);
-
-    // 10. Add Route: DELETE /revenue/{id}
-    // adding a child resource "{id}" to the existing "revenue" resource
+    // /revenue/{id}
     const singleEntryResource = revenueResource.addResource("{id}");
-
     singleEntryResource.addMethod(
       "DELETE",
       new apigateway.LambdaIntegration(deleteEntryLambda),
-      {
-        authorizer: auth,
-        authorizationType: apigateway.AuthorizationType.COGNITO,
-      },
+      authOptions,
     );
+
+    // /revenue/category/{category}
+    const categoryResource = revenueResource
+      .addResource("category")
+      .addResource("{category}");
+    categoryResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(getByCategoryLambda),
+      authOptions,
+    );
+
+    // 7. Outputs
+    this.apiUrl = api.url;
+    this.apiStageArn = `arn:aws:apigateway:${this.region}::/restapis/${api.restApiId}/stages/${api.deploymentStage.stageName}`;
+
+    new cdk.CfnOutput(this, "ApiUrl", { value: api.url });
+    new cdk.CfnOutput(this, "ApiStageArn", { value: this.apiStageArn });
   }
 }

@@ -19,6 +19,19 @@ export class PecuniaDatabaseStack extends cdk.Stack {
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
     });
 
+    this.table.addGlobalSecondaryIndex({
+      indexName: "CategoryDateIndex",
+      partitionKey: {
+        name: "GSI1PK",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "GSI1SK",
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     new cdk.CfnOutput(this, "TableName", {
       value: this.table.tableName,
     });

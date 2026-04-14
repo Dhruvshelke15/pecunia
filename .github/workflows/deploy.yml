@@ -75,31 +75,12 @@ jobs:
       - name: Install frontend deps
         run: cd frontend && npm ci
 
-      - name: Create stub aws-exports for CI
-        run: |
-          cat > frontend/src/aws-exports.ts << 'EOF'
-          export const awsConfig = {
-            Auth: {
-              Cognito: {
-                userPoolId: 'us-east-1_PLACEHOLDER',
-                userPoolClientId: 'PLACEHOLDER',
-              },
-            },
-            API: {
-              REST: {
-                PecuniaAPI: {
-                  endpoint: 'https://placeholder.execute-api.us-east-1.amazonaws.com/prod',
-                  region: 'us-east-1',
-                },
-              },
-            },
-          };
-          EOF
-
       - name: Build frontend
         run: cd frontend && npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_USER_POOL_ID: ${{ secrets.VITE_USER_POOL_ID }}
+          VITE_USER_POOL_CLIENT_ID: ${{ secrets.VITE_USER_POOL_CLIENT_ID }}
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4

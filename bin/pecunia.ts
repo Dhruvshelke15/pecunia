@@ -21,6 +21,7 @@ const apiStack = new PecuniaApiStack(app, "PecuniaApiStack", {
   table: dbStack.table,
   userPool: authStack.userPool,
   allowedOrigin: process.env.FRONTEND_ORIGIN ?? "*",
+  anthropicSecretArn: `arn:aws:secretsmanager:${process.env.CDK_DEFAULT_REGION}:${process.env.CDK_DEFAULT_ACCOUNT}:secret:pecunia/anthropic-api-key`,
 });
 
 new PecuniaWafStack(app, "PecuniaWafStack", {

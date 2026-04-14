@@ -4,6 +4,7 @@ import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import * as path from "path";
 
@@ -11,6 +12,7 @@ interface PecuniaApiStackProps extends cdk.StackProps {
   table: dynamodb.Table;
   userPool: cognito.UserPool;
   allowedOrigin: string;
+  anthropicSecretArn: string;
 }
 
 export class PecuniaApiStack extends cdk.Stack {
@@ -78,7 +80,26 @@ export class PecuniaApiStack extends cdk.Stack {
     );
     props.table.grantReadData(getByCategoryLambda);
 
-    // 5. Cognito authorizer
+    // 5. AI chat Lambda
+    const aiChatLambda = new nodejs.NodejsFunction(this, "AiChatHandler", {
+      ...commonLambdaProps,
+      entry: path.join(__dirname, "../backend/src/handlers/aiChat.ts"),
+      handler: "handler",
+      timeout: cdk.Duration.seconds(30),
+      environment: {
+        ...commonEnv,
+        ANTHROPIC_SECRET_ARN: props.anthropicSecretArn,
+      },
+    });
+    props.table.grantReadData(aiChatLambda);
+    aiChatLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [props.anthropicSecretArn],
+      }),
+    );
+
+    // 6. Cognito authorizer
     const auth = new apigateway.CognitoUserPoolsAuthorizer(
       this,
       "PecuniaAuthorizer",
@@ -92,7 +113,7 @@ export class PecuniaApiStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
     };
 
-    // 6. API Gateway
+    // 7. API Gateway
     const api = new apigateway.RestApi(this, "PecuniaApi", {
       restApiName: "Pecunia Service",
       defaultCorsPreflightOptions: {
@@ -132,7 +153,15 @@ export class PecuniaApiStack extends cdk.Stack {
       authOptions,
     );
 
-    // 7. Outputs
+    // /chat
+    const chatResource = api.root.addResource("chat");
+    chatResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(aiChatLambda),
+      authOptions,
+    );
+
+    // 8. Outputs
     this.apiUrl = api.url;
     this.apiStageArn = `arn:aws:apigateway:${this.region}::/restapis/${api.restApiId}/stages/${api.deploymentStage.stageName}`;
 

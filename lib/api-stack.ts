@@ -17,7 +17,7 @@ interface PecuniaApiStackProps extends cdk.StackProps {
 
 export class PecuniaApiStack extends cdk.Stack {
   public readonly apiUrl: string;
-  public readonly apiStageArn: string;
+  // public readonly apiStageArn: string;
 
   constructor(scope: Construct, id: string, props: PecuniaApiStackProps) {
     super(scope, id, props);
@@ -120,6 +120,11 @@ export class PecuniaApiStack extends cdk.Stack {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
       },
+      deployOptions: {
+        stageName: "prod",
+        throttlingRateLimit: 100,
+        throttlingBurstLimit: 200,
+      },
     });
 
     // /revenue
@@ -163,9 +168,9 @@ export class PecuniaApiStack extends cdk.Stack {
 
     // 8. Outputs
     this.apiUrl = api.url;
-    this.apiStageArn = `arn:aws:apigateway:${this.region}::/restapis/${api.restApiId}/stages/${api.deploymentStage.stageName}`;
+    // this.apiStageArn = `arn:aws:apigateway:${this.region}::/restapis/${api.restApiId}/stages/${api.deploymentStage.stageName}`;
 
     new cdk.CfnOutput(this, "ApiUrl", { value: api.url });
-    new cdk.CfnOutput(this, "ApiStageArn", { value: this.apiStageArn });
+    // new cdk.CfnOutput(this, "ApiStageArn", { value: this.apiStageArn });
   }
 }

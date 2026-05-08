@@ -5,7 +5,7 @@ import { PecuniaDatabaseStack } from "../lib/database-stack";
 import { PecuniaAuthStack } from "../lib/auth-stack";
 import { PecuniaApiStack } from "../lib/api-stack";
 import { PecuniaFrontendStack } from "../lib/frontend-stack";
-import { PecuniaWafStack } from "../lib/waf-stack";
+// import { PecuniaWafStack } from "../lib/waf-stack";
 
 const env: cdk.Environment = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
@@ -24,10 +24,10 @@ const apiStack = new PecuniaApiStack(app, "PecuniaApiStack", {
   anthropicSecretArn: process.env.ANTHROPIC_SECRET_ARN!,
 });
 
-new PecuniaWafStack(app, "PecuniaWafStack", {
-  env,
-  apiArn: apiStack.apiStageArn,
-});
+// new PecuniaWafStack(app, "PecuniaWafStack", {
+//   env,
+//   apiArn: apiStack.apiStageArn,
+// });
 
 new PecuniaFrontendStack(app, "PecuniaFrontendStack", {
   env,

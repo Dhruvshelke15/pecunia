@@ -4,8 +4,7 @@ const ALLOWED_ORIGINS = [
   process.env.ALLOWED_ORIGIN ?? "*",
   "http://localhost:5173",
   "http://localhost:4173",
-  "https://d2oty01tevvr27.cloudfront.net/",
-];
+].filter(Boolean) as string[];
 
 function getCorsOrigin(requestOrigin?: string): string {
   if (!requestOrigin) return ALLOWED_ORIGINS[0];

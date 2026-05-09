@@ -24,6 +24,9 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 import { useTransactions, useDeleteTransaction } from "./hooks/useTransactions";
 import type { TransactionDTO } from "./hooks/useTransactions";
+import HealthScoreCard from "./components/HealthScoreCard";
+import ForecastCard from "./components/ForecastCard";
+import PersonalityCard from "./components/PersonalityCard";
 
 function exportToCsv(transactions: TransactionDTO[]): void {
   const headers = [
@@ -71,7 +74,9 @@ export default function Dashboard() {
 
   const allEntries = data?.pages.flatMap((p) => p.items) ?? [];
   const [chartType, setChartType] = useState<"bar" | "pie" | "line">("bar");
-  const [viewMode, setViewMode] = useState<"income" | "expense">("income");
+  const [viewMode, setViewMode] = useState<"income" | "expense" | "all">(
+    "income",
+  );
 
   const incomeEntries = allEntries.filter(
     (e) => e.transactionType !== "expense",
@@ -80,12 +85,24 @@ export default function Dashboard() {
     (e) => e.transactionType === "expense",
   );
 
+  const activeData =
+    viewMode === "all"
+      ? allEntries
+      : viewMode === "income"
+        ? incomeEntries
+        : expenseEntries;
+  const sectionLabel =
+    viewMode === "all"
+      ? "All Transactions"
+      : viewMode === "income"
+        ? "Income Breakdown"
+        : "Expense Breakdown";
+
   const totalIncome = incomeEntries.reduce((s, i) => s + i.amount, 0);
   const totalExpense = expenseEntries.reduce((s, i) => s + i.amount, 0);
   const net = totalIncome - totalExpense;
 
   const isIncome = viewMode === "income";
-  const activeData = isIncome ? incomeEntries : expenseEntries;
   const MAIN = isIncome ? "#14b8a6" : "#f87171";
   const COLORS = isIncome ? INCOME_COLORS : EXPENSE_COLORS;
 
@@ -129,7 +146,7 @@ export default function Dashboard() {
           {
             label: "Net",
             value: net,
-            mode: null,
+            mode: "all" as const,
             teal: net >= 0,
             icon: DollarSign,
           },
@@ -188,7 +205,7 @@ export default function Dashboard() {
               className="font-semibold text-sm"
               style={{ color: "var(--text-primary)" }}
             >
-              {isIncome ? "Income" : "Expenses"}
+              {sectionLabel}
             </h2>
             <span
               className="tag"
@@ -357,7 +374,7 @@ export default function Dashboard() {
             className="text-xs uppercase tracking-widest font-medium mb-3"
             style={{ color: "var(--text-muted)" }}
           >
-            Recent {viewMode} transactions
+            Recent {sectionLabel.toLowerCase()}
           </p>
           <div className="space-y-2">
             <AnimatePresence>
@@ -472,6 +489,11 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <HealthScoreCard />
+        <ForecastCard />
+        <PersonalityCard />
       </div>
     </div>
   );

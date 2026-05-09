@@ -172,5 +172,38 @@ export class PecuniaApiStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "ApiUrl", { value: api.url });
     // new cdk.CfnOutput(this, "ApiStageArn", { value: this.apiStageArn });
+
+    const getInsightsLambda = new nodejs.NodejsFunction(
+      this,
+      "GetInsightsHandler",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        entry: path.join(__dirname, "../backend/src/handlers/getInsights.ts"),
+        handler: "handler",
+        timeout: cdk.Duration.seconds(30),
+        environment: {
+          TABLE_NAME: props.table.tableName,
+          ALLOWED_ORIGIN: props.allowedOrigin,
+          ANTHROPIC_SECRET_ARN: props.anthropicSecretArn,
+        },
+      },
+    );
+    props.table.grantReadData(getInsightsLambda);
+    getInsightsLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: [props.anthropicSecretArn],
+      }),
+    );
+
+    const insightsResource = api.root.addResource("insights");
+    insightsResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(getInsightsLambda),
+      {
+        authorizer: auth,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      },
+    );
   }
 }

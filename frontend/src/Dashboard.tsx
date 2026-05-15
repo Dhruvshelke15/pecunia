@@ -281,7 +281,7 @@ export default function Dashboard() {
             </p>
           </div>
         ) : (
-          <div className="h-52 w-full mb-5">
+          <div className="h-52 w-full mb-5" style={{ minHeight: "208px" }}>
             <ResponsiveContainer width="100%" height="100%">
               {chartType === "bar" ? (
                 <BarChart data={groupedData} barSize={28}>

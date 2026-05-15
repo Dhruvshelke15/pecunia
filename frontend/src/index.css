@@ -122,6 +122,25 @@
   }
 }
 
+/* Amplify Authenticator login page */
+[data-amplify-authenticator] {
+  min-height: 100vh;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+[data-amplify-router] {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+}
+[data-amplify-authenticator] input:-webkit-autofill,
+[data-amplify-authenticator] input:-webkit-autofill:hover,
+[data-amplify-authenticator] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.3) inset !important;
+  -webkit-text-fill-color: #f0f0f0 !important;
+  caret-color: #f0f0f0;
+}
+
 /* Recharts tooltip */
 .recharts-default-tooltip {
   background: var(--tooltip-bg) !important;

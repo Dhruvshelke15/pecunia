@@ -208,7 +208,7 @@ export default function RevenueForm() {
           <p
             className="text-center text-xs py-2 rounded-lg"
             style={{
-              color: message.type === "success" ? "#14b8a6" : "#f87171",
+              color: message.type === "success" ? "#14b886" : "#f87171",
               background:
                 message.type === "success"
                   ? "rgba(20,184,166,0.1)"

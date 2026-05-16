@@ -51,7 +51,6 @@ const amplifyTheme = createTheme({
           borderWidth: { value: "1px" },
           borderStyle: { value: "solid" },
           borderColor: { value: "rgba(255,255,255,0.07)" },
-          borderRadius: { value: "16px" },
           backgroundColor: { value: "rgba(255,255,255,0.04)" },
           boxShadow: { value: "0 24px 64px rgba(0,0,0,0.5)" },
         },
@@ -87,15 +86,10 @@ const amplifyTheme = createTheme({
       },
       fieldcontrol: {
         color: { value: "#f0f0f0" },
-        backgroundColor: { value: "rgba(0,0,0,0.3)" },
         borderColor: { value: "rgba(255,255,255,0.07)" },
         _focus: {
           borderColor: { value: "rgba(20,184,166,0.5)" },
           boxShadow: { value: "0 0 0 3px rgba(20,184,166,0.1)" },
-        },
-        _hover: {
-          borderColor: { value: "rgba(255,255,255,0.12)" },
-          backgroundColor: { value: "rgba(0,0,0,0.4)" },
         },
       },
       field: {
@@ -106,6 +100,7 @@ const amplifyTheme = createTheme({
       tabs: {
         item: {
           color: { value: "rgba(255,255,255,0.4)" },
+          borderColor: { value: "rgba(255,255,255,0.07)" },
           _active: {
             color: { value: "#14b8a6" },
             borderColor: { value: "#14b8a6" },
@@ -118,9 +113,6 @@ const amplifyTheme = createTheme({
             color: { value: "#14b8a6" },
           },
         },
-        border: {
-          color: { value: "rgba(255,255,255,0.07)" },
-        },
       },
       heading: {
         color: { value: "#f0f0f0" },
@@ -131,7 +123,6 @@ const amplifyTheme = createTheme({
       alert: {
         backgroundColor: { value: "rgba(248,113,113,0.08)" },
         color: { value: "#f87171" },
-        borderColor: { value: "rgba(248,113,113,0.2)" },
       },
     },
     radii: {

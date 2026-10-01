@@ -15,11 +15,13 @@ export default function AiChat() {
     useAiChat();
   const [input, setInput] = useState("");
   const [expanded, setExpanded] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll only the message list; scrollIntoView would also scroll the page.
+    const el = listRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, isLoading]);
 
   useEffect(() => {
@@ -51,295 +53,161 @@ export default function AiChat() {
 
   const chatContent = (
     <>
-      {/* Header */}
       <div
         className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-        style={{ borderBottom: "1px solid var(--border)" }}
+        style={{ borderBottom: "1px solid var(--line)" }}
       >
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{
-              background: "rgba(99,102,241,0.1)",
-              border: "1px solid rgba(99,102,241,0.2)",
-            }}
-          >
-            <Sparkles className="w-3.5 h-3.5" style={{ color: "#818cf8" }} />
-          </div>
-          <div>
-            <p
-              className="text-sm font-semibold"
-              style={{ color: "var(--text-primary)" }}
-            >
-              AI Assistant
-            </p>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              {isStreaming ? (
-                <span className="flex items-center gap-1">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full animate-pulse"
-                    style={{ background: "#818cf8" }}
-                  />
-                  Typing...
-                </span>
-              ) : (
-                "Ask about your finances"
-              )}
-            </p>
-          </div>
+        <div>
+          <h2 className="panel-title flex items-center gap-2">
+            <Sparkles className="w-4 h-4" style={{ color: "var(--brass)" }} />
+            Ask Pecunia
+          </h2>
+          <p className="text-[0.8125rem] mt-0.5" style={{ color: "var(--ink-3)" }} aria-live="polite">
+            {isStreaming ? "Writing an answer…" : "Answers come from your own entries"}
+          </p>
         </div>
 
         <div className="flex items-center gap-1.5">
           {messages.length > 0 && (
-            <button
-              onClick={clearMessages}
-              className="btn-ghost w-7 h-7"
-              title="Clear chat"
-            >
+            <button onClick={clearMessages} className="btn-quiet w-8 h-8" aria-label="Clear conversation">
               <X className="w-3.5 h-3.5" />
             </button>
           )}
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="btn-ghost w-7 h-7"
-            title={expanded ? "Collapse" : "Expand"}
+            className="btn-quiet w-8 h-8"
+            aria-label={expanded ? "Collapse chat" : "Expand chat"}
           >
-            {expanded ? (
-              <Minimize2 className="w-3.5 h-3.5" />
-            ) : (
-              <Maximize2 className="w-3.5 h-3.5" />
-            )}
+            {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+      <div ref={listRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-0">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col justify-center gap-2">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm mb-1" style={{ color: "var(--ink-3)" }}>
+              Try one of these
+            </p>
             {SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 onClick={() => sendMessage(s)}
-                className="text-left text-xs px-3.5 py-2.5 rounded-xl transition-all duration-200"
-                style={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-secondary)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border-hover)";
-                  e.currentTarget.style.color = "var(--text-primary)";
-                  e.currentTarget.style.background = "var(--bg-card-hover)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border)";
-                  e.currentTarget.style.color = "var(--text-secondary)";
-                  e.currentTarget.style.background = "var(--bg-card)";
-                }}
+                className="text-left text-sm px-3.5 py-2.5 rounded-lg transition-colors hover:border-[var(--brass)]"
+                style={{ background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink-2)" }}
               >
                 {s}
               </button>
             ))}
           </div>
         ) : (
-          messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className="max-w-[85%] text-xs leading-relaxed px-3.5 py-2.5 rounded-2xl"
-                style={
-                  msg.role === "user"
-                    ? {
-                        background: "rgba(20,184,166,0.12)",
-                        border: "1px solid rgba(20,184,166,0.2)",
-                        color: "var(--text-primary)",
-                        borderBottomRightRadius: "4px",
-                      }
-                    : {
-                        background: "var(--bg-card)",
-                        border: "1px solid var(--border)",
-                        color: "var(--text-secondary)",
-                        borderBottomLeftRadius: "4px",
-                        minWidth: "40px",
-                      }
-                }
-              >
-                {msg.role === "assistant" ? (
-                  <>
-                    <ReactMarkdown
-                      components={{
-                        p: ({ children }) => (
-                          <p className="mb-1.5 last:mb-0">{children}</p>
-                        ),
-                        strong: ({ children }) => (
-                          <span
-                            className="font-semibold"
-                            style={{ color: "var(--text-primary)" }}
-                          >
-                            {children}
-                          </span>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="list-none space-y-1 mt-1">
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="list-none space-y-1 mt-1">
-                            {children}
-                          </ol>
-                        ),
-                        li: ({ children }) => (
-                          <li
-                            className="flex gap-1.5"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            <span style={{ color: "var(--text-muted)" }}>
-                              –
-                            </span>
-                            <span>{children}</span>
-                          </li>
-                        ),
-                        code: ({ children }) => (
-                          <code
-                            className="font-mono px-1 py-0.5 rounded text-[11px]"
-                            style={{
-                              color: "#14b8a6",
-                              background: "rgba(20,184,166,0.1)",
-                            }}
-                          >
-                            {children}
-                          </code>
-                        ),
-                        h3: ({ children }) => (
-                          <h3
-                            className="font-semibold mb-1 mt-2 first:mt-0"
-                            style={{ color: "var(--text-primary)" }}
-                          >
-                            {children}
-                          </h3>
-                        ),
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                    {msg.streaming && (
-                      <span
-                        className="inline-block w-1.5 h-3.5 ml-0.5 rounded-sm animate-pulse align-middle"
-                        style={{ background: "#818cf8", opacity: 0.8 }}
-                      />
-                    )}
-                  </>
-                ) : (
-                  msg.content
+          messages.map((msg, i) =>
+            msg.role === "user" ? (
+              <div key={i} className="flex justify-end">
+                <div
+                  className="max-w-[85%] text-sm leading-relaxed px-3.5 py-2 rounded-2xl rounded-br-md"
+                  style={{ background: "var(--brass-soft)", color: "var(--ink)" }}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ) : (
+              <div key={i} className="text-sm leading-relaxed pl-3" style={{ borderLeft: "2px solid var(--line-strong)", color: "var(--ink-2)" }}>
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    strong: ({ children }) => (
+                      <strong className="font-semibold" style={{ color: "var(--ink)" }}>
+                        {children}
+                      </strong>
+                    ),
+                    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 my-1">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 my-1">{children}</ol>,
+                    code: ({ children }) => (
+                      <code className="px-1 rounded" style={{ background: "var(--surface-2)", color: "var(--ink)" }}>
+                        {children}
+                      </code>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="font-semibold mb-1 mt-2 first:mt-0" style={{ color: "var(--ink)" }}>
+                        {children}
+                      </h3>
+                    ),
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+                {msg.streaming && (
+                  <span className="inline-block w-1.5 h-4 ml-0.5 animate-pulse align-middle" style={{ background: "var(--brass)" }} />
                 )}
               </div>
-            </div>
-          ))
+            ),
+          )
         )}
 
         {isLoading && (
-          <div className="flex justify-start">
-            <div
-              className="px-3.5 py-3 rounded-2xl"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                borderBottomLeftRadius: "4px",
-              }}
-            >
-              <div className="flex gap-1 items-center">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full animate-bounce"
-                    style={{
-                      background: "#818cf8",
-                      animationDelay: `${i * 150}ms`,
-                      animationDuration: "800ms",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+          <div className="flex gap-1 items-center pl-3 py-2" aria-label="Thinking">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1.5 h-1.5 rounded-full animate-bounce"
+                style={{ background: "var(--brass)", animationDelay: `${i * 150}ms`, animationDuration: "800ms" }}
+              />
+            ))}
           </div>
         )}
 
         {error && (
-          <p className="text-center text-xs" style={{ color: "#f87171" }}>
+          <p role="alert" className="text-sm" style={{ color: "var(--expense)" }}>
             {error}
           </p>
         )}
-
-        <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div
+      <form
         className="px-4 py-3 flex gap-2 flex-shrink-0"
-        style={{ borderTop: "1px solid var(--border)" }}
+        style={{ borderTop: "1px solid var(--line)" }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSend();
+        }}
       >
         <input
           ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder="Ask anything..."
+          placeholder="How much went on food in March?"
+          aria-label="Ask a question"
           disabled={isLoading || isStreaming}
-          className="field-input flex-1 text-xs py-2 px-3"
+          className="field flex-1"
         />
         <button
-          onClick={handleSend}
+          type="submit"
           disabled={!input.trim() || isLoading || isStreaming}
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 border"
-          style={
-            input.trim() && !isLoading && !isStreaming
-              ? {
-                  background: "rgba(20,184,166,0.15)",
-                  borderColor: "rgba(20,184,166,0.25)",
-                  color: "#14b8a6",
-                }
-              : {
-                  background: "var(--bg-card)",
-                  borderColor: "var(--border)",
-                  color: "var(--text-muted)",
-                }
-          }
+          className="btn-primary w-11 flex-shrink-0"
+          aria-label="Send"
         >
-          <Send className="w-3.5 h-3.5" />
+          <Send className="w-4 h-4" />
         </button>
-      </div>
+      </form>
     </>
   );
 
   if (expanded) {
     return (
       <>
-        {/* Backdrop */}
         <div
-          className="fixed inset-0 z-40 transition-opacity duration-200"
-          style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+          className="fixed inset-0 z-40"
+          style={{ background: "rgba(6,14,12,0.55)", backdropFilter: "blur(3px)" }}
           onClick={() => setExpanded(false)}
         />
-
-        {/* Expanded panel */}
         <div
-          className="fixed top-0 right-0 bottom-0 z-50 flex flex-col"
-          style={{
-            width: "50%",
-            background: "var(--bg-base)",
-            borderLeft: "1px solid var(--border)",
-            boxShadow: "-8px 0 32px rgba(0,0,0,0.3)",
-          }}
+          role="dialog"
+          aria-label="Ask Pecunia"
+          className="fixed top-0 right-0 bottom-0 z-50 flex flex-col w-full sm:w-[min(640px,60vw)]"
+          style={{ background: "var(--surface)", borderLeft: "1px solid var(--line-strong)" }}
+          onKeyDown={(e) => e.key === "Escape" && setExpanded(false)}
         >
           {chatContent}
         </div>
@@ -348,8 +216,8 @@ export default function AiChat() {
   }
 
   return (
-    <div className="card flex flex-col" style={{ height: "400px" }}>
+    <section className="panel flex flex-col h-[460px]">
       {chatContent}
-    </div>
+    </section>
   );
 }

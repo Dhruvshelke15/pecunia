@@ -13,20 +13,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  Trash2,
-  RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Download,
-} from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { Trash2, RefreshCw, Download } from "lucide-react";
 import { useTransactions, useDeleteTransaction } from "./hooks/useTransactions";
 import type { TransactionDTO } from "./hooks/useTransactions";
-import HealthScoreCard from "./components/HealthScoreCard";
-import ForecastCard from "./components/ForecastCard";
-import PersonalityCard from "./components/PersonalityCard";
+import { money } from "./format";
 
 function exportToCsv(transactions: TransactionDTO[]): void {
   const headers = [
@@ -57,8 +47,17 @@ function exportToCsv(transactions: TransactionDTO[]): void {
   URL.revokeObjectURL(url);
 }
 
-const INCOME_COLORS = ["#14b8a6", "#0ea5e9", "#22d3ee", "#34d399", "#6ee7b7"];
-const EXPENSE_COLORS = ["#f87171", "#fb7185", "#f97316", "#fbbf24", "#e879f9"];
+// Validated categorical order (dark + light surfaces); 6th+ fold into "Other".
+const CATEGORY_COLORS = ["#2FA47C", "#4F8FD6", "#E0614B", "#A06BCB", "#B08A2E"];
+const OTHER_COLOR = "#7B8A81";
+const SERIES = { income: "#2FA47C", expense: "#E0614B", all: "#B08A2E" };
+const VIEWS = [
+  { mode: "income", label: "Income" },
+  { mode: "expense", label: "Expenses" },
+  { mode: "all", label: "Everything" },
+] as const;
+
+const axis = { stroke: "var(--ink-3)", fontSize: 12, tickLine: false, axisLine: false };
 
 export default function Dashboard() {
   const {
@@ -78,423 +77,237 @@ export default function Dashboard() {
     "income",
   );
 
-  const incomeEntries = allEntries.filter(
-    (e) => e.transactionType !== "expense",
-  );
-  const expenseEntries = allEntries.filter(
-    (e) => e.transactionType === "expense",
-  );
-
   const activeData =
     viewMode === "all"
       ? allEntries
-      : viewMode === "income"
-        ? incomeEntries
-        : expenseEntries;
-  const sectionLabel =
-    viewMode === "all"
-      ? "All Transactions"
-      : viewMode === "income"
-        ? "Income Breakdown"
-        : "Expense Breakdown";
+      : allEntries.filter((e) =>
+          viewMode === "expense"
+            ? e.transactionType === "expense"
+            : e.transactionType !== "expense",
+        );
+  const MAIN = SERIES[viewMode];
 
-  const totalIncome = incomeEntries.reduce((s, i) => s + i.amount, 0);
-  const totalExpense = expenseEntries.reduce((s, i) => s + i.amount, 0);
-  const net = totalIncome - totalExpense;
-
-  const isIncome = viewMode === "income";
-  const MAIN = isIncome ? "#14b8a6" : "#f87171";
-  const COLORS = isIncome ? INCOME_COLORS : EXPENSE_COLORS;
-
-  const groupedData = activeData.reduce(
-    (acc: { name: string; value: number }[], curr) => {
-      const ex = acc.find((i) => i.name === curr.category);
-      if (ex) ex.value += curr.amount;
-      else acc.push({ name: curr.category, value: curr.amount });
+  const grouped = Object.entries(
+    activeData.reduce<Record<string, number>>((acc, e) => {
+      acc[e.category] = (acc[e.category] ?? 0) + e.amount;
       return acc;
-    },
-    [],
-  );
-
-  const tooltipStyle = {
-    backgroundColor: "var(--tooltip-bg)",
-    border: "1px solid var(--tooltip-border)",
-    borderRadius: "10px",
-    fontSize: "13px",
-    color: "var(--text-primary)",
-  };
+    }, {}),
+  )
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+  const pieData =
+    grouped.length > 5
+      ? [
+          ...grouped.slice(0, 4),
+          { name: "Other", value: grouped.slice(4).reduce((s, g) => s + g.value, 0) },
+        ]
+      : grouped;
+  const pieTotal = pieData.reduce((s, g) => s + g.value, 0);
+  const lineData = [...activeData].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <div className="space-y-4">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          {
-            label: "Income",
-            value: totalIncome,
-            mode: "income" as const,
-            teal: true,
-            icon: TrendingUp,
-          },
-          {
-            label: "Expenses",
-            value: totalExpense,
-            mode: "expense" as const,
-            teal: false,
-            icon: TrendingDown,
-          },
-          {
-            label: "Net",
-            value: net,
-            mode: "all" as const,
-            teal: net >= 0,
-            icon: DollarSign,
-          },
-        ].map(({ label, value, mode, teal, icon: Icon }) => (
-          <div
-            key={label}
-            onClick={() => mode && setViewMode(mode)}
-            className="rounded-2xl p-4 transition-all duration-200"
-            style={{
-              background: teal
-                ? "rgba(20,184,166,0.07)"
-                : "rgba(248,113,113,0.07)",
-              border: `1px solid ${
-                viewMode === mode
-                  ? teal
-                    ? "rgba(20,184,166,0.3)"
-                    : "rgba(248,113,113,0.3)"
-                  : "var(--border)"
-              }`,
-              cursor: mode ? "pointer" : "default",
-              outline:
-                viewMode === mode
-                  ? `1px solid ${teal ? "rgba(20,184,166,0.2)" : "rgba(248,113,113,0.2)"}`
-                  : "none",
-              opacity: mode && viewMode !== mode ? 0.75 : 1,
-            }}
+    <section className="panel p-5 sm:p-6" aria-labelledby="breakdown-title">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id="breakdown-title" className="panel-title">
+          Where it goes
+        </h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCsv(allEntries)}
+            className="btn-quiet h-8 px-3"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span
-                className="text-xs uppercase tracking-widest font-medium"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {label}
-              </span>
-              <Icon
-                className="w-3.5 h-3.5"
-                style={{ color: teal ? "#14b8a6" : "#f87171" }}
-              />
-            </div>
-            <p
-              className="text-2xl font-bold font-mono tracking-tight"
-              style={{ color: teal ? "#14b8a6" : "#f87171" }}
-            >
-              ${value.toFixed(2)}
-            </p>
-          </div>
-        ))}
+            <Download className="w-3.5 h-3.5" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => refetch()}
+            className="btn-quiet w-8 h-8"
+            aria-label="Refresh transactions"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
+            />
+          </button>
+        </div>
       </div>
 
-      {/* Main card */}
-      <div className="card p-5">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <h2
-              className="font-semibold text-sm"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {sectionLabel}
-            </h2>
-            <span
-              className="tag"
-              style={{
-                background: isIncome
-                  ? "rgba(20,184,166,0.1)"
-                  : "rgba(248,113,113,0.1)",
-                color: isIncome ? "#14b8a6" : "#f87171",
-              }}
-            >
-              {viewMode}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div
-              className="flex rounded-lg p-0.5 gap-0.5"
-              style={{
-                background: "var(--bg-input)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              {(["bar", "pie", "line"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setChartType(t)}
-                  className="px-3 py-1.5 text-xs rounded-md capitalize font-medium transition-all duration-200"
-                  style={
-                    chartType === t
-                      ? {
-                          background: "var(--bg-card-hover)",
-                          color: "var(--text-primary)",
-                        }
-                      : { color: "var(--text-muted)" }
-                  }
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="seg" role="group" aria-label="Show">
+          {VIEWS.map((v) => (
             <button
-              onClick={() => exportToCsv(allEntries)}
-              className="btn-ghost px-3 py-1.5 text-xs gap-1.5"
+              key={v.mode}
+              aria-pressed={viewMode === v.mode}
+              onClick={() => setViewMode(v.mode)}
             >
-              <Download className="w-3.5 h-3.5" />
-              CSV
+              {v.label}
             </button>
-
-            <button onClick={() => refetch()} className="btn-ghost w-8 h-8">
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
-              />
-            </button>
-          </div>
+          ))}
         </div>
+        <div className="seg" role="group" aria-label="Chart type">
+          {(
+            [
+              ["bar", "By category"],
+              ["pie", "Share"],
+              ["line", "Over time"],
+            ] as const
+          ).map(([t, label]) => (
+            <button
+              key={t}
+              aria-pressed={chartType === t}
+              onClick={() => setChartType(t)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* Chart */}
-        {isLoading ? (
-          <div className="h-52 flex items-center justify-center">
-            <div
-              className="w-5 h-5 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: "var(--border)",
-                borderTopColor: "#14b8a6",
-              }}
-            />
-          </div>
-        ) : activeData.length === 0 ? (
-          <div className="h-52 flex items-center justify-center">
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              No {viewMode} data yet
-            </p>
-          </div>
-        ) : (
-          <div className="h-52 w-full mb-5" style={{ minHeight: "208px" }}>
+      {isLoading ? (
+        <div className="h-64 mt-5 rounded-xl animate-pulse" style={{ background: "var(--surface-2)" }} />
+      ) : activeData.length === 0 ? (
+        <div className="h-64 mt-5 flex flex-col items-center justify-center text-center rounded-xl" style={{ border: "1px dashed var(--line-strong)" }}>
+          <p className="font-display text-lg">Nothing here yet</p>
+          <p className="text-sm mt-1" style={{ color: "var(--ink-3)" }}>
+            Add an entry on the left and it shows up here.
+          </p>
+        </div>
+      ) : chartType === "pie" ? (
+        <div className="mt-5 grid sm:grid-cols-[220px_1fr] gap-6 items-center">
+          <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              {chartType === "bar" ? (
-                <BarChart data={groupedData} barSize={28}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="var(--grid-color)"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="name"
-                    stroke="var(--axis-color)"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="var(--axis-color)"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => `$${v}`}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    cursor={{ fill: "var(--border)" }}
-                  />
-                  <Bar dataKey="value" fill={MAIN} radius={[5, 5, 0, 0]} />
-                </BarChart>
-              ) : chartType === "pie" ? (
-                <PieChart>
-                  <Pie
-                    data={groupedData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={85}
-                    innerRadius={48}
-                    stroke="none"
-                  >
-                    {groupedData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
-                </PieChart>
-              ) : (
-                <LineChart data={activeData}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="var(--grid-color)"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="date"
-                    stroke="var(--axis-color)"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="var(--axis-color)"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => `$${v}`}
-                  />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Line
-                    type="monotone"
-                    dataKey="amount"
-                    stroke={MAIN}
-                    strokeWidth={2}
-                    dot={{
-                      r: 3,
-                      fill: "var(--bg-base)",
-                      strokeWidth: 2,
-                      stroke: MAIN,
-                    }}
-                  />
-                </LineChart>
-              )}
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={100}
+                  innerRadius={62}
+                  stroke="var(--surface)"
+                  strokeWidth={2}
+                >
+                  {pieData.map((g, i) => (
+                    <Cell
+                      key={g.name}
+                      fill={g.name === "Other" ? OTHER_COLOR : CATEGORY_COLORS[i]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v) => money(Number(v))} />
+              </PieChart>
             </ResponsiveContainer>
           </div>
-        )}
-
-        {/* Transaction list */}
-        <div>
-          <p
-            className="text-xs uppercase tracking-widest font-medium mb-3"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Recent {sectionLabel.toLowerCase()}
-          </p>
-          <div className="space-y-2">
-            <AnimatePresence>
-              {activeData.map((entry) => (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  className="group flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200"
+          <ul className="space-y-2.5">
+            {pieData.map((g, i) => (
+              <li key={g.name} className="flex items-center gap-3 text-sm">
+                <span
+                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
                   style={{
-                    background: "var(--bg-card)",
-                    border: "1px solid var(--border)",
+                    background: g.name === "Other" ? OTHER_COLOR : CATEGORY_COLORS[i],
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--bg-card-hover)";
-                    e.currentTarget.style.borderColor = "var(--border-hover)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "var(--bg-card)";
-                    e.currentTarget.style.borderColor = "var(--border)";
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background:
-                          entry.transactionType === "expense"
-                            ? "rgba(248,113,113,0.1)"
-                            : "rgba(20,184,166,0.1)",
-                      }}
-                    >
-                      {entry.transactionType === "expense" ? (
-                        <TrendingDown
-                          className="w-3.5 h-3.5"
-                          style={{ color: "#f87171" }}
-                        />
-                      ) : (
-                        <TrendingUp
-                          className="w-3.5 h-3.5"
-                          style={{ color: "#14b8a6" }}
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <p
-                        className="text-sm font-medium"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        {entry.source}
-                      </p>
-                      <p
-                        className="text-xs"
-                        style={{ color: "var(--text-muted)" }}
-                      >
-                        {entry.date} · {entry.category}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="text-sm font-bold font-mono"
-                      style={{
-                        color:
-                          entry.transactionType === "expense"
-                            ? "#f87171"
-                            : "#14b8a6",
-                      }}
-                    >
-                      {entry.transactionType === "expense" ? "-" : "+"}$
-                      {entry.amount.toFixed(2)}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm("Delete?")) deleteMutation.mutate(entry.id);
-                      }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
-                      style={{ color: "var(--text-muted)" }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background =
-                          "rgba(248,113,113,0.1)";
-                        e.currentTarget.style.color = "#f87171";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.color = "var(--text-muted)";
-                      }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {hasNextPage && (
-              <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="w-full py-2.5 text-xs rounded-xl transition-all duration-200 font-medium"
-                style={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                {isFetchingNextPage ? "Loading..." : "Load more"}
-              </button>
-            )}
-          </div>
+                />
+                <span className="flex-1">{g.name}</span>
+                <span style={{ color: "var(--ink-3)" }}>
+                  {Math.round((g.value / pieTotal) * 100)}%
+                </span>
+                <span className="w-28 text-right font-medium">{money(g.value)}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <HealthScoreCard />
-        <ForecastCard />
-        <PersonalityCard />
-      </div>
-    </div>
+      ) : (
+        <div className="h-64 mt-5">
+          <ResponsiveContainer width="100%" height="100%">
+            {chartType === "bar" ? (
+              <BarChart data={grouped} barCategoryGap="30%">
+                <CartesianGrid stroke="var(--line)" vertical={false} />
+                <XAxis dataKey="name" {...axis} />
+                <YAxis {...axis} width={56} tickFormatter={(v) => `$${v}`} />
+                <Tooltip
+                  formatter={(v) => [money(Number(v)), "Total"]}
+                  cursor={{ fill: "var(--surface-2)" }}
+                />
+                <Bar dataKey="value" fill={MAIN} radius={[4, 4, 0, 0]} maxBarSize={44} />
+              </BarChart>
+            ) : (
+              <LineChart data={lineData}>
+                <CartesianGrid stroke="var(--line)" vertical={false} />
+                <XAxis dataKey="date" {...axis} />
+                <YAxis {...axis} width={56} tickFormatter={(v) => `$${v}`} />
+                <Tooltip formatter={(v) => [money(Number(v)), "Amount"]} />
+                <Line
+                  type="monotone"
+                  dataKey="amount"
+                  stroke={MAIN}
+                  strokeWidth={2}
+                  dot={{ r: 4, fill: MAIN, stroke: "var(--surface)", strokeWidth: 2 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {activeData.length > 0 && (
+        <div className="mt-7">
+          <h3 className="text-sm font-semibold mb-2" style={{ color: "var(--ink-2)" }}>
+            Ledger
+          </h3>
+          <ul className="divide-y" style={{ borderColor: "var(--line)" }}>
+            {activeData.map((entry) => {
+              const isExpense = entry.transactionType === "expense";
+              return (
+                <li
+                  key={entry.id}
+                  className="group grid grid-cols-[4.5rem_1fr_auto_2rem] sm:grid-cols-[6rem_1fr_auto_2rem] items-center gap-3 py-3"
+                  style={{ borderColor: "var(--line)" }}
+                >
+                  <time className="text-sm" style={{ color: "var(--ink-3)" }}>
+                    {new Date(entry.date + "T00:00").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </time>
+                  <div className="min-w-0">
+                    <p className="text-[0.9375rem] font-medium truncate">{entry.source}</p>
+                    <p className="text-[0.8125rem]" style={{ color: "var(--ink-3)" }}>
+                      {entry.category}
+                    </p>
+                  </div>
+                  <span
+                    className="text-[0.9375rem] font-semibold text-right"
+                    style={{ color: isExpense ? "var(--expense)" : "var(--income)" }}
+                  >
+                    {isExpense ? "−" : "+"}
+                    {money(entry.amount)}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Delete "${entry.source}"?`))
+                        deleteMutation.mutate(entry.id);
+                    }}
+                    aria-label={`Delete ${entry.source}`}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:text-[var(--expense)]"
+                    style={{ color: "var(--ink-3)" }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {hasNextPage && (
+            <button
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="btn-quiet w-full h-10 mt-3"
+            >
+              {isFetchingNextPage ? "Loading…" : "Show older entries"}
+            </button>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

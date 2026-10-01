@@ -1,76 +1,32 @@
-import { Loader2, HeartPulse } from "lucide-react";
 import { useInsight, type HealthScore } from "../hooks/useInsights";
+import InsightShell from "./InsightShell";
 
-function ScoreRing({ score, grade }: { score: number; grade: string }) {
-  const radius = 42;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-  const color = score >= 75 ? "#14b8a6" : score >= 50 ? "#f59e0b" : "#f43f5e";
+const tone = (v: number) =>
+  v >= 75 ? "var(--income)" : v >= 50 ? "var(--brass)" : "var(--expense)";
 
+function ScoreRing({ score }: { score: number }) {
+  const r = 44;
+  const c = 2 * Math.PI * r;
   return (
-    <div className="flex flex-col items-center gap-1 flex-shrink-0">
-      <div className="relative w-28 h-28">
-        <svg
-          width="112"
-          height="112"
-          style={{ position: "absolute", top: 0, left: 0 }}
-        >
-          {/* background track */}
-          <circle
-            cx="56"
-            cy="56"
-            r={radius}
-            fill="none"
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth="8"
-            transform="rotate(-90 56 56)"
-          />
-          {/* progress arc */}
-          <circle
-            cx="56"
-            cy="56"
-            r={radius}
-            fill="none"
-            stroke={color}
-            strokeWidth="8"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            transform="rotate(-90 56 56)"
-            style={{ transition: "stroke-dashoffset 1s ease" }}
-          />
-        </svg>
-        {/* score centered inside circle */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <span className="text-2xl font-bold" style={{ color }}>
-            {score}
-          </span>
-        </div>
-      </div>
-
-      {/* grade below circle */}
-      <span
-        className="text-xs font-bold px-2 py-0.5 rounded-full"
-        style={{
-          color,
-          background: `${color}18`,
-          border: `1px solid ${color}40`,
-        }}
-      >
-        {grade}
-      </span>
-    </div>
+    <svg width="112" height="112" viewBox="0 0 112 112" className="flex-shrink-0" role="img" aria-label={`Score ${score} out of 100`}>
+      <circle cx="56" cy="56" r={r} fill="none" stroke="var(--surface-2)" strokeWidth="8" />
+      <circle
+        cx="56"
+        cy="56"
+        r={r}
+        fill="none"
+        stroke={tone(score)}
+        strokeWidth="8"
+        strokeDasharray={c}
+        strokeDashoffset={c - (score / 100) * c}
+        strokeLinecap="round"
+        transform="rotate(-90 56 56)"
+        style={{ transition: "stroke-dashoffset 1s ease" }}
+      />
+      <text x="56" y="62" textAnchor="middle" className="font-display" fontSize="28" fill="var(--ink)">
+        {score}
+      </text>
+    </svg>
   );
 }
 
@@ -79,131 +35,56 @@ export default function HealthScoreCard() {
     useInsight<HealthScore>("health_score");
 
   return (
-    <div className="card flex flex-col gap-4 p-5">
-      <div className="flex items-center gap-2">
-        <HeartPulse className="w-4 h-4" style={{ color: "#14b8a6" }} />
-        <span
-          className="text-sm font-semibold"
-          style={{ color: "var(--text-primary)" }}
-        >
-          Financial Health Score
-        </span>
-      </div>
-
-      {!data && !loading && (
-        <div className="flex flex-col items-center gap-4 py-4">
-          <p
-            className="text-xs text-center"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Get an AI-powered score based on your savings rate, spending
-            consistency, and category balance.
-          </p>
-          <button
-            onClick={generate}
-            className="px-5 py-2 rounded-xl text-sm font-semibold transition-all"
-            style={{
-              background: "rgba(20,184,166,0.15)",
-              border: "1px solid rgba(20,184,166,0.25)",
-              color: "#14b8a6",
-            }}
-          >
-            Check Score
-          </button>
-          {error && (
-            <p className="text-xs" style={{ color: "#f43f5e" }}>
-              {error}
-            </p>
-          )}
-        </div>
-      )}
-
-      {loading && (
-        <div className="flex flex-col items-center gap-2 py-6">
-          <Loader2
-            className="w-6 h-6 animate-spin"
-            style={{ color: "#14b8a6" }}
-          />
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Analyzing your finances...
-          </p>
-        </div>
-      )}
-
+    <InsightShell
+      title="Health score"
+      intro="A score out of 100 based on how much you save, how steady your spending is, and how balanced your categories are."
+      action="Check my score"
+      loadingText="Scoring your finances…"
+      loading={loading}
+      error={error}
+      hasData={!!data}
+      onGenerate={generate}
+      badge={
+        data && (
+          <span className="font-display text-lg" style={{ color: tone(data.score) }}>
+            {data.grade}
+          </span>
+        )
+      }
+    >
       {data && (
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <ScoreRing score={data.score} grade={data.grade} />
-            <div className="flex-1 min-w-0 space-y-3">
+        <>
+          <div className="flex items-center gap-5">
+            <ScoreRing score={data.score} />
+            <dl className="flex-1 min-w-0 space-y-3">
               {Object.entries(data.breakdown).map(([key, val]) => (
-                <div key={key} className="space-y-1">
-                  <div className="flex justify-between items-center text-xs">
-                    <span
-                      style={{ color: "var(--text-muted)" }}
-                      className="capitalize"
-                    >
-                      {key.replace(/([A-Z])/g, " $1").trim()}
-                    </span>
-                    <span
-                      style={{ color: "var(--text-secondary)" }}
-                      className="font-mono tabular-nums ml-1"
-                    >
-                      {val}
-                    </span>
+                <div key={key}>
+                  <div className="flex justify-between text-[0.8125rem]">
+                    <dt className="capitalize" style={{ color: "var(--ink-2)" }}>
+                      {key.replace(/([A-Z])/g, " $1").toLowerCase()}
+                    </dt>
+                    <dd className="font-medium">{val}</dd>
                   </div>
-                  <div
-                    className="h-1.5 rounded-full w-full"
-                    style={{ background: "rgba(255,255,255,0.06)" }}
-                  >
+                  <div className="h-1.5 mt-1 rounded-full" style={{ background: "var(--surface-2)" }}>
                     <div
-                      className="h-1.5 rounded-full transition-all duration-700"
-                      style={{
-                        width: `${val}%`,
-                        background:
-                          (val as number) >= 75
-                            ? "#14b8a6"
-                            : (val as number) >= 50
-                              ? "#f59e0b"
-                              : "#f43f5e",
-                      }}
+                      className="h-full rounded-full transition-[width] duration-700"
+                      style={{ width: `${val}%`, background: tone(val) }}
                     />
                   </div>
                 </div>
               ))}
-            </div>
+            </dl>
           </div>
-
-          <p
-            className="text-xs leading-relaxed"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <p className="text-sm leading-relaxed" style={{ color: "var(--ink-2)" }}>
             {data.summary}
           </p>
-
-          <div className="space-y-2">
+          <ul className="space-y-2 text-sm leading-relaxed list-disc pl-5 marker:text-[var(--brass)]">
             {data.tips.map((tip, i) => (
-              <div
-                key={i}
-                className="flex gap-2 text-xs leading-relaxed"
-                style={{ color: "var(--text-muted)" }}
-              >
-                <span className="flex-shrink-0" style={{ color: "#14b8a6" }}>
-                  →
-                </span>
-                <span>{tip}</span>
-              </div>
+              <li key={i}>{tip}</li>
             ))}
-          </div>
-
-          <button
-            onClick={generate}
-            className="text-xs self-end"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Recalculate
-          </button>
-        </div>
+          </ul>
+        </>
       )}
-    </div>
+    </InsightShell>
   );
 }

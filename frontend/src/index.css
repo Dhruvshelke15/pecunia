@@ -2,173 +2,243 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg-base: #070b12;
-  --bg-card: rgba(255, 255, 255, 0.04);
-  --bg-card-hover: rgba(255, 255, 255, 0.06);
-  --bg-input: rgba(0, 0, 0, 0.3);
-  --bg-input-hover: rgba(0, 0, 0, 0.4);
-  --border: rgba(255, 255, 255, 0.07);
-  --border-hover: rgba(255, 255, 255, 0.12);
-  --border-focus: rgba(20, 184, 166, 0.4);
-  --text-primary: #f0f0f0;
-  --text-secondary: rgba(255, 255, 255, 0.5);
-  --text-muted: rgba(255, 255, 255, 0.25);
-  --text-placeholder: rgba(255, 255, 255, 0.2);
-  --nav-bg: rgba(7, 11, 18, 0.9);
-  --axis-color: rgba(255, 255, 255, 0.2);
-  --grid-color: rgba(255, 255, 255, 0.04);
-  --tooltip-bg: #0f1520;
-  --tooltip-border: rgba(255, 255, 255, 0.1);
-  --select-bg: #111a28;
-  --option-bg: #0f1520;
+/* Banknote palette: bottle-green ink, brass, paper. */
+:root,
+[data-theme="dark"] {
+  --bg: #0b1916;
+  --surface: #10231f;
+  --surface-2: #163029;
+  --line: rgba(214, 226, 210, 0.1);
+  --line-strong: rgba(214, 226, 210, 0.2);
+  --ink: #e9ede4;
+  --ink-2: #a9b5aa;
+  --ink-3: #7b8a81;
+  --brass: #d4b062;
+  --brass-soft: rgba(212, 176, 98, 0.14);
+  --income: #45c497;
+  --expense: #ef7f68;
+  --income-soft: rgba(47, 164, 124, 0.16);
+  --expense-soft: rgba(224, 97, 75, 0.16);
+  --focus: #d4b062;
+  color-scheme: dark;
 }
 
 [data-theme="light"] {
-  --bg-base: #f4f6fa;
-  --bg-card: rgba(255, 255, 255, 0.9);
-  --bg-card-hover: rgba(255, 255, 255, 1);
-  --bg-input: rgba(0, 0, 0, 0.04);
-  --bg-input-hover: rgba(0, 0, 0, 0.07);
-  --border: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(0, 0, 0, 0.15);
-  --border-focus: rgba(20, 184, 166, 0.5);
-  --text-primary: #0f172a;
-  --text-secondary: rgba(15, 23, 42, 0.55);
-  --text-muted: rgba(15, 23, 42, 0.35);
-  --text-placeholder: rgba(15, 23, 42, 0.3);
-  --nav-bg: rgba(244, 246, 250, 0.92);
-  --axis-color: rgba(15, 23, 42, 0.3);
-  --grid-color: rgba(15, 23, 42, 0.06);
-  --tooltip-bg: #ffffff;
-  --tooltip-border: rgba(0, 0, 0, 0.1);
-  --select-bg: #ffffff;
-  --option-bg: #ffffff;
+  --bg: #e6ebe4;
+  --surface: #f7f9f5;
+  --surface-2: #edf1ec;
+  --line: rgba(16, 35, 31, 0.11);
+  --line-strong: rgba(16, 35, 31, 0.22);
+  --ink: #10231f;
+  --ink-2: #44564f;
+  --ink-3: #66766f;
+  --brass: #86661a;
+  --brass-soft: rgba(134, 102, 26, 0.12);
+  --income: #1d7d5b;
+  --expense: #b8432e;
+  --income-soft: rgba(47, 164, 124, 0.14);
+  --expense-soft: rgba(224, 97, 75, 0.13);
+  --focus: #86661a;
+  color-scheme: light;
 }
 
 @layer base {
+  /* Old Standard has a small x-height; scale rem up so body text stays legible. */
+  html {
+    font-size: 17px;
+  }
   body {
-    background-color: var(--bg-base);
-    color: var(--text-primary);
+    background: var(--bg);
+    color: var(--ink);
     min-height: 100vh;
-    font-family:
-      ui-sans-serif,
-      system-ui,
-      -apple-system,
-      sans-serif;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    font-family: "Old Standard TT", Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
   }
 }
 
 @layer components {
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    transition:
-      border-color 0.2s ease,
-      background 0.2s ease;
+  .font-display {
+    font-family: "Cinzel", Georgia, serif;
+    font-weight: 400;
   }
-  .card:hover {
-    border-color: var(--border-hover);
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
   }
-  .field-input {
+  .panel-title {
+    font-family: "Cinzel", Georgia, serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    font-size: 1.125rem;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+  }
+  .field {
     width: 100%;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 14px;
-    color: var(--text-primary);
-    font-family: inherit;
-    font-size: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.9375rem;
     outline: none;
-    transition: all 0.2s ease;
+    transition: border-color 0.15s ease;
   }
-  .field-input::placeholder {
-    color: var(--text-placeholder);
+  .field::placeholder {
+    color: var(--ink-3);
   }
-  .field-input:hover {
-    border-color: var(--border-hover);
-    background: var(--bg-input-hover);
+  .field:hover {
+    border-color: var(--line-strong);
   }
-  .field-input:focus {
-    border-color: var(--border-focus);
-    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+  .field:focus {
+    border-color: var(--brass);
   }
-  .btn-ghost {
-    display: flex;
+  .seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 9px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+  }
+  .seg > button {
+    padding: 5px 12px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 6px;
+    color: var(--ink-3);
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+  .seg > button:hover {
+    color: var(--ink);
+  }
+  .seg > button[aria-pressed="true"] {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 0 var(--line-strong);
+  }
+  .btn-quiet {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
     border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-muted);
-    transition: all 0.2s ease;
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease;
   }
-  .btn-ghost:hover {
-    border-color: var(--border-hover);
-    color: var(--text-primary);
-    background: var(--bg-card-hover);
+  .btn-quiet:hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
   }
-  .tag {
-    font-size: 11px;
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 9px;
+    background: var(--brass);
+    color: #10231f;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 2px 8px;
-    border-radius: 6px;
+    font-size: 0.875rem;
+    transition: filter 0.15s ease;
+  }
+  [data-theme="light"] .btn-primary {
+    color: #f7f9f5;
+  }
+  .btn-primary:hover {
+    filter: brightness(1.08);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
 /* Amplify Authenticator login page */
 [data-amplify-authenticator] {
   min-height: 100vh;
-  background: var(--bg-base);
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 [data-amplify-router] {
-  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+  font-family: "Old Standard TT", Georgia, serif !important;
 }
 [data-amplify-authenticator] input:-webkit-autofill,
 [data-amplify-authenticator] input:-webkit-autofill:hover,
 [data-amplify-authenticator] input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.3) inset !important;
-  -webkit-text-fill-color: #f0f0f0 !important;
-  caret-color: #f0f0f0;
+  -webkit-box-shadow: 0 0 0 1000px var(--surface-2) inset !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink);
 }
 
 /* Recharts tooltip */
 .recharts-default-tooltip {
-  background: var(--tooltip-bg) !important;
-  border: 1px solid var(--tooltip-border) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18) !important;
 }
 .recharts-tooltip-label {
-  color: var(--text-secondary) !important;
-  font-size: 11px !important;
-  margin-bottom: 4px !important;
+  color: var(--ink-3) !important;
+  font-size: 12px !important;
+  margin-bottom: 2px !important;
 }
 .recharts-tooltip-item {
-  color: var(--text-primary) !important;
+  color: var(--ink) !important;
   font-size: 13px !important;
-  font-family: ui-monospace, monospace !important;
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
+  width: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(20, 184, 166, 0.25);
-  border-radius: 2px;
+  background: var(--line-strong);
+  border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(20, 184, 166, 0.45);
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
+
+/* Welcome screen: the one orchestrated entrance. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.welcome-rise > * {
+  animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.welcome-rise > :nth-child(2) { animation-delay: 0.08s; }
+.welcome-rise > :nth-child(3) { animation-delay: 0.16s; }
+.welcome-rise > :nth-child(4) { animation-delay: 0.26s; }
+.welcome-rise > :nth-child(5) { animation-delay: 0.36s; }

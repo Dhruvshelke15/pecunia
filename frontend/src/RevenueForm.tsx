@@ -39,97 +39,73 @@ export default function RevenueForm() {
         amount: Number(formData.amount),
         transactionType,
       });
-      setMessage({ text: "Transaction recorded", type: "success" });
+      setMessage({
+        text: `${isIncome ? "Income" : "Expense"} added`,
+        type: "success",
+      });
       setFormData({ ...formData, amount: "", source: "" });
     } catch {
-      setMessage({ text: "Failed to save", type: "error" });
+      setMessage({
+        text: "Couldn't save this entry. Check your connection and try again.",
+        type: "error",
+      });
     }
   };
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-5">
-        <h2
-          className="text-xs font-semibold tracking-widest uppercase"
-          style={{ color: "var(--text-muted)" }}
-        >
-          New Entry
-        </h2>
-        <div
-          className="flex rounded-lg p-0.5 gap-0.5"
-          style={{
-            background: "var(--bg-input)",
-            border: "1px solid var(--border)",
-          }}
-        >
-          {(["income", "expense"] as const).map((type) => (
+    <section className="panel p-5 sm:p-6" aria-labelledby="entry-title">
+      <h2 id="entry-title" className="panel-title">
+        Add an entry
+      </h2>
+
+      <div
+        className="mt-4 grid grid-cols-2 p-1 rounded-[10px]"
+        style={{ background: "var(--surface-2)", border: "1px solid var(--line)" }}
+        role="group"
+        aria-label="Entry type"
+      >
+        {(["income", "expense"] as const).map((type) => {
+          const active = transactionType === type;
+          const tone = type === "income" ? "income" : "expense";
+          return (
             <button
               key={type}
               type="button"
+              aria-pressed={active}
               onClick={() => setTransactionType(type)}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md capitalize transition-all duration-200"
+              className="py-2 rounded-[7px] text-sm font-semibold transition-colors"
               style={
-                transactionType === type
-                  ? type === "income"
-                    ? {
-                        background: "rgba(20,184,166,0.15)",
-                        color: "#14b8a6",
-                        border: "1px solid rgba(20,184,166,0.25)",
-                      }
-                    : {
-                        background: "rgba(248,113,113,0.15)",
-                        color: "#f87171",
-                        border: "1px solid rgba(248,113,113,0.25)",
-                      }
-                  : {
-                      color: "var(--text-muted)",
-                      border: "1px solid transparent",
-                    }
+                active
+                  ? { background: `var(--${tone}-soft)`, color: `var(--${tone})` }
+                  : { color: "var(--ink-3)" }
               }
             >
-              {type}
+              {type === "income" ? "Money in" : "Money out"}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3.5">
+      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div>
-          <label
-            className="block text-xs mb-1.5 uppercase tracking-wider"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Date
-          </label>
-          <input
-            type="date"
-            required
-            className="field-input"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label
-            className="block text-xs mb-1.5 uppercase tracking-wider"
-            style={{ color: "var(--text-muted)" }}
-          >
+          <label htmlFor="amount" className="label">
             Amount
           </label>
           <div className="relative">
             <span
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-mono"
-              style={{ color: "var(--text-muted)" }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 font-display text-xl"
+              style={{ color: "var(--ink-3)" }}
             >
               $
             </span>
             <input
+              id="amount"
               type="number"
               step="0.01"
+              min="0.01"
               required
               placeholder="0.00"
-              className="field-input font-mono pl-8"
+              className="field font-display !text-2xl !py-3 pl-8"
               value={formData.amount}
               onChange={(e) =>
                 setFormData({ ...formData, amount: e.target.value })
@@ -139,19 +115,15 @@ export default function RevenueForm() {
         </div>
 
         <div>
-          <label
-            className="block text-xs mb-1.5 uppercase tracking-wider"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Source
+          <label htmlFor="source" className="label">
+            {isIncome ? "From" : "Paid to"}
           </label>
           <input
+            id="source"
             type="text"
             required
-            placeholder={
-              isIncome ? "e.g. Salary, Freelance" : "e.g. Netflix, Rent"
-            }
-            className="field-input"
+            placeholder={isIncome ? "Acme Corp" : "Landlord"}
+            className="field"
             value={formData.source}
             onChange={(e) =>
               setFormData({ ...formData, source: e.target.value })
@@ -159,66 +131,67 @@ export default function RevenueForm() {
           />
         </div>
 
-        <div>
-          <label
-            className="block text-xs mb-1.5 uppercase tracking-wider"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Category
-          </label>
-          <select
-            className="field-input cursor-pointer"
-            value={formData.category}
-            onChange={(e) =>
-              setFormData({ ...formData, category: e.target.value })
-            }
-            style={{ background: "var(--bg-input)" }}
-          >
-            {CATEGORIES.map((c) => (
-              <option
-                key={c}
-                value={c}
-                style={{ background: "var(--option-bg)" }}
-              >
-                {c}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="date" className="label">
+              Date
+            </label>
+            <input
+              id="date"
+              type="date"
+              required
+              className="field"
+              value={formData.date}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+            />
+          </div>
+          <div>
+            <label htmlFor="category" className="label">
+              Category
+            </label>
+            <select
+              id="category"
+              className="field cursor-pointer"
+              value={formData.category}
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value })
+              }
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={createTransaction.isPending}
-          className="w-full py-3 rounded-xl text-sm font-bold tracking-wide transition-all duration-200 flex items-center justify-center gap-2 mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            background: isIncome
-              ? "linear-gradient(135deg, #14b8a6, #0d9488)"
-              : "linear-gradient(135deg, #f87171, #ef4444)",
-            color: isIncome ? "#f0fdf4" : "#fff1f2",
-          }}
+          className="btn-primary w-full h-11"
         >
           {createTransaction.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            `Add ${isIncome ? "Income" : "Expense"}`
+            `Add ${isIncome ? "income" : "expense"}`
           )}
         </button>
 
         {message && (
           <p
-            className="text-center text-xs py-2 rounded-lg"
+            role="status"
+            className="text-sm"
             style={{
-              color: message.type === "success" ? "#14b886" : "#f87171",
-              background:
-                message.type === "success"
-                  ? "rgba(20,184,166,0.1)"
-                  : "rgba(248,113,113,0.1)",
+              color: message.type === "success" ? "var(--income)" : "var(--expense)",
             }}
           >
             {message.text}
           </p>
         )}
       </form>
-    </div>
+    </section>
   );
 }
